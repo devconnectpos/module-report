@@ -9,9 +9,15 @@ use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Reports\Model\ResourceModel\Order\CollectionFactory;
 use Magento\Store\Model\ScopeInterface;
 use SM\Core\Model\DataObject;
+use Magento\Framework\App\ProductMetadataInterface;
 
 class Data
 {
+    /**
+     * Magento Community product edition
+     */
+    const COMMUNITY_EDITION  = 'Community';
+
     const GROUP_TYPE_DATE = "last,last_from";
 
     // con first sales va last sales,day_of_week,hour
@@ -45,6 +51,10 @@ class Data
      * @var \Magento\Framework\App\Config\ScopeConfigInterface
      */
     protected $scopeConfig;
+    /**
+     * @var \Magento\Framework\App\ProductMetadataInterface
+     */
+    private $productMetadata;
 
     /**
      * Data constructor.
@@ -55,6 +65,7 @@ class Data
      * @param \Magento\Reports\Model\ResourceModel\Order\CollectionFactory    $reportOrderResource
      * @param \SM\Payment\Model\ResourceModel\RetailPayment\CollectionFactory $paymentCollectionFactory
      * @param \Magento\Framework\Stdlib\DateTime\DateTime                     $date
+     * @param \Magento\Framework\App\ProductMetadataInterface                 $productMetadata
      */
     public function __construct(
         TimezoneInterface $timezoneInterface,
@@ -62,7 +73,8 @@ class Data
         ObjectManagerInterface $objectManager,
         CollectionFactory $reportOrderResource,
         \SM\Payment\Model\ResourceModel\RetailPayment\CollectionFactory $paymentCollectionFactory,
-        DateTime $date
+        DateTime $date,
+        ProductMetadataInterface $productMetadata
     ) {
         $this->objectManager            = $objectManager;
         $this->timezoneInterface        = $timezoneInterface;
@@ -70,6 +82,7 @@ class Data
         $this->reportOrderResource      = $reportOrderResource;
         $this->paymentCollectionFactory = $paymentCollectionFactory;
         $this->date                     = $date;
+        $this->productMetadata          = $productMetadata;
     }
 
     /**
@@ -473,5 +486,13 @@ class Data
         } else {
             return $foo->getGmtOffset();
         }
+    }
+
+    /**
+     * @return bool
+     */
+    public function isCommunityMagentoEdition()
+    {
+        return $this->productMetadata->getEdition() === self::COMMUNITY_EDITION;
     }
 }
