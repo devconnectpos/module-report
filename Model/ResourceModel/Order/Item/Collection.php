@@ -377,11 +377,21 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                 $product_name_id = $this->eavAttribute->getIdByCode('catalog_product', 'name');
                 if (!!$product_name_id) {
                     // if magento CE must use product_varchar.entity_id instead of product_varchar.row_id
-                    $this->getSelect()->joinLeft(
-                        ['product_varchar' => $this->getTable('catalog_product_entity_varchar')],
-                        'product_varchar.entity_id = main_table.product_id AND product_varchar.store_id = 0 AND `product_varchar`.`attribute_id` = ' . $product_name_id,
-                        ['product_name' => 'product_varchar.value']
-                    );
+                    if ($this->reportHelper->isCommunityMagentoEdition()) {
+                        $this->getSelect()->joinLeft(
+                            ['product_varchar' => $this->getTable('catalog_product_entity_varchar')],
+                            'product_varchar.entity_id = main_table.product_id AND product_varchar.store_id = 0 AND `product_varchar`.`attribute_id` = '
+                            . $product_name_id,
+                            ['product_name' => 'product_varchar.value']
+                        );
+                    } else {
+                        $this->getSelect()->joinLeft(
+                            ['product_varchar' => $this->getTable('catalog_product_entity_varchar')],
+                            'product_varchar.row_id = main_table.product_id AND product_varchar.store_id = 0 AND `product_varchar`.`attribute_id` = '
+                            . $product_name_id,
+                            ['product_name' => 'product_varchar.value']
+                        );
+                    }
                 }
                 $this->getSelect()->columns(['all_product_name' => "GROUP_CONCAT(main_table.name)"]);
                 $this->getSelect()->group('sku');
@@ -398,11 +408,22 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                 );
                 $category_att_id = $this->eavAttribute->getIdByCode('catalog_category', 'name');
                 // if magento CE must use category_varchar.entity_id instead of category_varchar.row_id
-                $this->getSelect()->joinLeft(
-                    ['category_varchar' => $this->getTable('catalog_category_entity_varchar')],
-                    'category_product.category_id = category_varchar.entity_id AND category_varchar.store_id = 0  AND category_varchar.attribute_id =' . $category_att_id,
-                    ['category_name' => 'category_varchar.value']
-                );
+                if ($this->reportHelper->isCommunityMagentoEdition()) {
+                    $this->getSelect()->joinLeft(
+                        ['category_varchar' => $this->getTable('catalog_category_entity_varchar')],
+                        'category_product.category_id = category_varchar.entity_id AND category_varchar.store_id = 0  AND category_varchar.attribute_id ='
+                        . $category_att_id,
+                        ['category_name' => 'category_varchar.value']
+                    );
+                } else {
+                    $this->getSelect()->joinLeft(
+                        ['category_varchar' => $this->getTable('catalog_category_entity_varchar')],
+                        'category_product.category_id = category_varchar.row_id AND category_varchar.store_id = 0  AND category_varchar.attribute_id ='
+                        . $category_att_id,
+                        ['category_name' => 'category_varchar.value']
+                    );
+                }
+
                 $this->getSelect()->group('category_id');
                 break;
             default:
@@ -551,11 +572,19 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                                                ->getData('attribute_id');
         $select              = $this->getSelect();
         // if magento CE must use product_int.entity_id instead of product_int.row_id
-        $select->joinLeft(
-            ['product_int' => $this->getTable('catalog_product_entity_int')],
-            'product_int.entity_id = main_table.product_id and product_int.store_id = 0 and product_int.attribute_id = ' . $manufacturer_att_id,
-            ['manufacturer_key' => 'product_int.value']
-        );
+        if ($this->reportHelper->isCommunityMagentoEdition()) {
+            $select->joinLeft(
+                ['product_int' => $this->getTable('catalog_product_entity_int')],
+                'product_int.entity_id = main_table.product_id and product_int.store_id = 0 and product_int.attribute_id = ' . $manufacturer_att_id,
+                ['manufacturer_key' => 'product_int.value']
+            );
+        } else {
+            $select->joinLeft(
+                ['product_int' => $this->getTable('catalog_product_entity_int')],
+                'product_int.row_id = main_table.product_id and product_int.store_id = 0 and product_int.attribute_id = ' . $manufacturer_att_id,
+                ['manufacturer_key' => 'product_int.value']
+            );
+        }
 
         $select->joinLeft(
             ['eav_option' => $this->getTable('eav_attribute_option_value')],
