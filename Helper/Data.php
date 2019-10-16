@@ -273,7 +273,7 @@ class Data
         return $datas;
     }
 
-    protected function getReportOrderResource()
+    public function getReportOrderResource()
     {
         return $this->reportOrderResource->create();
     }
