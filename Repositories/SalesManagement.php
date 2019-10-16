@@ -11,6 +11,7 @@ use Magento\Payment\Helper\Data;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\User\Model\UserFactory;
 use SM\Core\Model\DataObject;
+use SM\Payment\Model\RetailPayment;
 use SM\Payment\Model\RetailPaymentRepository;
 use SM\Report\Model\ResourceModel\Order\CollectionFactory;
 use SM\Report\Model\ResourceModel\Order\Item\Collection;
@@ -219,7 +220,7 @@ class SalesManagement extends ServiceAbstract
             $dateStart = $dateRanger['date_start_GMT'];
             $dateEnd   = $dateRanger['date_end_GMT'];
             if ($itemDetail == "retailmultiple" && $reportType == "payment_method") {
-                $collection = $this->getRetailPaymentMethodCollection($dateStart, $dateEnd);
+                $collection = $this->getRetailPaymentMethodCollection($dateStart, $dateEnd, $data['outlet_id']);
             } else {
                 $isSelectDetail = false;
                 if ($itemDetail != null) {
@@ -243,7 +244,7 @@ class SalesManagement extends ServiceAbstract
                 // de ntn de luc hien thi tren report lay dung duoc current time ( sau khi da convert timezone theo magento 2 lan )
                 $xGroup['data'] = ['date_start' => $dateStart, 'date_end' => $dateEnd];
                 if ($itemDetail == "retailmultiple" && $reportType == "payment_method") {
-                    $collection = $this->getRetailPaymentMethodCollection($dateStartGMT, $dateEndGMT);
+                    $collection = $this->getRetailPaymentMethodCollection($dateStartGMT, $dateEndGMT, $data['outlet_id']);
                 } else {
                     $isSelectDetail = false;
                     if ($itemDetail == "magento_status" && $reportType == "order_status") {
@@ -272,7 +273,8 @@ class SalesManagement extends ServiceAbstract
                                 $dataReportValue = $paymentMethod->getData('title');
                             } else {
                                 $dataReportType  = $item->getData('payment_method');
-                                $dataReportValue = $this->paymentHelper->getMethodInstance($dataReportType)->getTitle();
+                                $listPayment = $this->paymentHelper->getPaymentMethodList();
+                                $dataReportValue = isset($listPayment[$dataReportType]) ? $this->paymentHelper->getMethodInstance($dataReportType)->getTitle()." ($dataReportType)" : $dataReportType;
                             }
                             $xItem             = [
                                 'data_report_type'  => $dataReportType,
@@ -475,11 +477,22 @@ class SalesManagement extends ServiceAbstract
         return $this->salesReportOrderItemCollectionFactory->create();
     }
 
-    protected function getRetailPaymentMethodCollection($dateStart, $dateEnd)
+    protected function getRetailPaymentMethodCollection($dateStart, $dateEnd, $outletId = null)
     {
         $collection = $this->transactionCollectionFactory->create();
 
-        $this->reportHelper->addDateRangerFilter($collection, $dateStart, $dateEnd);
+        $dateRanger = $this->reportHelper->getReportOrderResource()->getDateRange('custom', $dateStart, $dateEnd);
+        $collection->addFieldToFilter(
+            'main_table.payment_type',
+            array('nin' => array(
+                RetailPayment::GIFT_CARD_PAYMENT_TYPE,
+                RetailPayment::REWARD_POINT_PAYMENT_TYPE,
+                RetailPayment::REFUND_GC_PAYMENT_TYPE,
+                RetailPayment::REFUND_TO_STORE_CREDIT_PAYMENT_TYPE,
+                RetailPayment::STORE_CREDIT_PAYMENT_TYPE
+             )
+            )
+        );
         $collection->addFieldToSelect('payment_id');
         $collection->getSelect()->group('payment_id');
 
@@ -488,10 +501,15 @@ class SalesManagement extends ServiceAbstract
             'sorder.entity_id = main_table.order_id',
             ['order_id' => 'sorder.entity_id']
         );
+
+        if ($outletId !== null && $outletId !== 'null') {
+            $collection->addFieldToFilter('sorder.outlet_id', $outletId);
+        }
+        $collection->addFieldToFilter('sorder.created_at', $dateRanger);
         $collection->addFieldToFilter('sorder.retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
         $collection->getSelect()->columns(
             [
-                'grand_total' => 'SUM(main_table.amount)',
+                'grand_total' => 'SUM(main_table.base_amount)',
                 'order_count' => 'COUNT(DISTINCT order_id)'
             ]
         );
@@ -586,7 +604,8 @@ class SalesManagement extends ServiceAbstract
                     $data_value    = $paymentMethod->getData('title');
                 } else {
                     $data       = $item->getData('payment_method');
-                    $data_value = $this->paymentHelper->getMethodInstance($data)->getTitle();
+                    $listPayment = $this->paymentHelper->getPaymentMethodList();
+                    $data_value = isset($listPayment[$data]) ? $this->paymentHelper->getMethodInstance($data)->getTitle()." ($data)" : $data;
                 }
                 break;
             case "shipping_method":

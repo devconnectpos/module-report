@@ -652,6 +652,9 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                 }
                 break;
             case "payment_method":
+                if ($data['outlet_id'] !== null && $data['outlet_id'] !== 'null') {
+                    $this->addFieldToFilter('outlet_id', $data['outlet_id']);
+                }
                 $this->getSelect()->joinLeft(
                     ['spayment' => $this->getTable('sales_order_payment')],
                     'spayment.parent_id =  main_table.entity_id',
