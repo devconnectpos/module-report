@@ -442,8 +442,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
 
         $this->setMainTable('sales_order');
         $this->getSelect()->reset(Select::COLUMNS);
-
-        if ($itemDetail != null && $typeReport == 'outlet' || $extra_info != null) {
+        if ($itemDetail != null && $typeReport == 'outlet' || $extra_info != null || $typeReport == 'monetary') {
         } else {
             $this->joinOrderItemTable();
         }
@@ -455,8 +454,8 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
             $this->addFieldToFilter('retail_status', ['null' => true]);
         } else {
             // khong lay order nhung order la PARTIALLY payment
-            $this->addFieldToFilter('retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
-            $this->addFieldToFilter('base_total_invoiced', ['neq' => 'NULL']);
+                $this->addFieldToFilter('retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
+                $this->addFieldToFilter('base_total_invoiced', ['neq' => 'NULL']);
         }
         $globalTz = $this->reportHelper->getTimezone(true);
         switch ($typeReport) {
@@ -703,105 +702,142 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                 $this->getSelect()->columns(['hour' => "HOUR(CONVERT_TZ(main_table.created_at, '+00:00', '{$globalTz}'))"]);
                 $this->getSelect()->group('hour');
                 break;
+            case "monetary":
+                $this->getSelect()->joinLeft(
+                    ['sm_retail_transaction' => $this->getTable('sm_retail_transaction')],
+                    'sm_retail_transaction.order_id = main_table.entity_id',
+                    [
+                        'payment_id',
+                        'payment_title',
+                        'payment_type',
+                        'amount',
+                    ]
+                );
+                $this->getSelect()->group('id');
+                break;
         }
         if ($itemDetail != null && $typeReport == 'outlet' || $extra_info != null) {
             $this->addDataToSelectItem();
         } else {
-            $this->addDataToSelect();
+            $this->addDataToSelect($typeReport);
         }
         $this->reportHelper->filterByColumn($this, $dataFilter, $if_filter_total_value);
 
         return $this;
     }
 
-    private function addDataToSelect()
+    private function addDataToSelect($typeReport = null)
     {
         $connection = $this->getResource()->getConnection();
         $select     = $this->getSelect();
         $select->columns(
             [
-                'total_shipping_amount'  => new Zend_Db_Expr(
-                    sprintf(
-                        $connection->getIfNullSql('%s - %s', 0),
-                        $connection->getIfNullSql('SUM(main_table.base_shipping_amount)', 0),
-                        $connection->getIfNullSql('SUM(main_table.base_shipping_tax_amount)', 0)
-                    )
-                ),
-                'base_total_invoiced'    => $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', '0'),
-                'revenue'                => new Zend_Db_Expr(
-                    sprintf(
-                        $connection->getIfNullSql('%s - %s - %s - (%s - %s - %s)', 0),
-                        $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', '0'),
-                        $connection->getIfNullSql('SUM(main_table.base_tax_amount)', '0'),
-                        $connection->getIfNullSql('SUM(main_table.base_shipping_invoiced)', '0'),
-                        $connection->getIfNullSql('SUM(main_table.base_total_refunded)', '0'),
-                        $connection->getIfNullSql('SUM(main_table.base_tax_refunded)', '0'),
-                        $connection->getIfNullSql('SUM(main_table.base_shipping_refunded)', '0')
-                    )
-                ),
-                'total_for_discount_percent'                => new Zend_Db_Expr(
-                    sprintf(
-                        $connection->getIfNullSql('%s - %s', 0),
-                        $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', 0),
-                        $connection->getIfNullSql('SUM(main_table.base_total_refunded)', 0)
-                    )
-                ),
-                'grand_total'            => new Zend_Db_Expr(
-                    sprintf(
-                        $connection->getIfNullSql('%s - %s', 0),
-                        $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', 0),
-                        $connection->getIfNullSql('SUM(main_table.base_total_refunded)', 0)
-                    )
-                ),
-                'base_row_total_product' => $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', '0'),
-                //'total_tax'              => $connection->getIfNullSql('SUM(main_table.base_tax_amount)', '0'),
-                'total_tax'             => new Zend_Db_Expr(
-                    sprintf(
-                        $connection->getIfNullSql('SUM(%s - %s)', 0),
-                        $connection->getIfNullSql('main_table.base_tax_amount', '0'),
-                        $connection->getIfNullSql('main_table.base_tax_refunded', '0')
-                    )
-                ),
-                'total_cart_size'        => $connection->getIfNullSql('SUM(main_table.total_item_count)', '0'),
-                'cart_size'              => new Zend_Db_Expr(
-                    sprintf(
-                        $connection->getIfNullSql('%s / %s', 0),
-                        $connection->getIfNullSql('SUM(main_table.total_qty_ordered)', '0'),
-                        'COUNT(main_table.entity_id)'
-                    )
-                ),
-                'customer_count'         => $connection->getIfNullSql('COUNT(distinct main_table.customer_id)', '0'),
-                'discount_amount'        => new Zend_Db_Expr(
-                    sprintf(
-                        $connection->getIfNullSql('%s - %s', 0),
-                        $connection->getIfNullSql('SUM(main_table.base_discount_invoiced)', '0'),
-                        $connection->getIfNullSql('SUM(main_table.base_discount_refunded)', '0')
-                    )
-                ),
-                'first_sale'             => "MIN(main_table.created_at)",
-                'item_sold'              => $connection->getIfNullSql('SUM(main_table.total_qty_ordered-items_order.refunded_items_count)', '0'),
-                'last_sale'              => "MAX(main_table.created_at)",
-                'order_count'            => 'COUNT(main_table.entity_id)',
-                'shipping_amount'        => new Zend_Db_Expr(
-                    sprintf(
-                        $connection->getIfNullSql('SUM(%s - %s)', 0),
-                        $connection->getIfNullSql('main_table.base_shipping_invoiced', '0'),
-                        $connection->getIfNullSql('main_table.base_shipping_refunded', '0')
-                    )
-                ),
-                'shipping_tax'           => new Zend_Db_Expr(
-                    sprintf(
-                        $connection->getIfNullSql('SUM(%s - %s)', 0),
-                        $connection->getIfNullSql('main_table.base_shipping_tax_amount', '0'),
-                        $connection->getIfNullSql('main_table.base_shipping_tax_refunded', '0')
-                    )
-                ),
-                'shipping_tax_refunded'  => $connection->getIfNullSql('SUM(main_table.base_shipping_tax_refunded)', '0'),
-                'subtotal_refunded'      => $connection->getIfNullSql('SUM(main_table.base_subtotal_refunded)', '0'),
-                'total_refunded'         => $connection->getIfNullSql('SUM(main_table.base_total_refunded)', '0')
+
             ]
         );
+        if ($typeReport == 'monetary') {
+            $select->columns(
+                [
+                    'order_id' => 'entity_id',
+                    'customer_id' => 'customer_id',
+                    'store_id' => 'store_id',
+                    'created_at'             => "MIN(main_table.created_at)",
+                    'cashier_id'             => "MIN(main_table.user_id)",
+                    'subtotal'  => 'subtotal',
+                    'base_discount_amount' => 'base_discount_amount',
+                    'base_shipping_amount' => 'base_shipping_amount',
+                    'base_grand_total' => 'base_grand_total',
+                    'base_total_paid' => 'base_total_paid',
+                    'base_total_due' => 'base_total_due',
+                    'shipping_method' => 'shipping_method'
+                ]
+            );
+        } else {
+            $select->columns(
+                [
+                    'total_shipping_amount'  => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('%s - %s', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_shipping_amount)', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_shipping_tax_amount)', 0)
+                        )
+                    ),
+                    'base_total_invoiced'    => $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', '0'),
+                    'revenue'                => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('%s - %s - %s - (%s - %s - %s)', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', '0'),
+                            $connection->getIfNullSql('SUM(main_table.base_tax_amount)', '0'),
+                            $connection->getIfNullSql('SUM(main_table.base_shipping_invoiced)', '0'),
+                            $connection->getIfNullSql('SUM(main_table.base_total_refunded)', '0'),
+                            $connection->getIfNullSql('SUM(main_table.base_tax_refunded)', '0'),
+                            $connection->getIfNullSql('SUM(main_table.base_shipping_refunded)', '0')
+                        )
+                    ),
+                    'total_for_discount_percent'                => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('%s - %s', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_total_refunded)', 0)
+                        )
+                    ),
+                    'grand_total'            => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('%s - %s', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_total_refunded)', 0)
+                        )
+                    ),
+                    'base_row_total_product' => $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', '0'),
+                    //'total_tax'              => $connection->getIfNullSql('SUM(main_table.base_tax_amount)', '0'),
+                    'total_tax'             => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('SUM(%s - %s)', 0),
+                            $connection->getIfNullSql('main_table.base_tax_amount', '0'),
+                            $connection->getIfNullSql('main_table.base_tax_refunded', '0')
+                        )
+                    ),
+                    'total_cart_size'        => $connection->getIfNullSql('SUM(main_table.total_item_count)', '0'),
+                    'cart_size'              => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('%s / %s', 0),
+                            $connection->getIfNullSql('SUM(main_table.total_qty_ordered)', '0'),
+                            'COUNT(main_table.entity_id)'
+                        )
+                    ),
+                    'customer_count'         => $connection->getIfNullSql('COUNT(distinct main_table.customer_id)', '0'),
+                    'discount_amount'        => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('%s - %s', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_discount_invoiced)', '0'),
+                            $connection->getIfNullSql('SUM(main_table.base_discount_refunded)', '0')
+                        )
+                    ),
+                    'first_sale'             => "MIN(main_table.created_at)",
+                    'last_sale'              => "MAX(main_table.created_at)",
+                    'item_sold'              => $connection->getIfNullSql('SUM(main_table.total_qty_ordered-items_order.refunded_items_count)', '0'),
+                    'order_count'            => 'COUNT(main_table.entity_id)',
+                    'shipping_amount'        => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('SUM(%s - %s)', 0),
+                            $connection->getIfNullSql('main_table.base_shipping_invoiced', '0'),
+                            $connection->getIfNullSql('main_table.base_shipping_refunded', '0')
+                        )
+                    ),
+                    'shipping_tax'           => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('SUM(%s - %s)', 0),
+                            $connection->getIfNullSql('main_table.base_shipping_tax_amount', '0'),
+                            $connection->getIfNullSql('main_table.base_shipping_tax_refunded', '0')
+                        )
+                    ),
+                    'shipping_tax_refunded'  => $connection->getIfNullSql('SUM(main_table.base_shipping_tax_refunded)', '0'),
+                    'subtotal_refunded'      => $connection->getIfNullSql('SUM(main_table.base_subtotal_refunded)', '0'),
+                    'total_refunded'         => $connection->getIfNullSql('SUM(main_table.base_total_refunded)', '0')
 
+                ]
+            );
+        }
         return $this;
     }
 

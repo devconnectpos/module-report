@@ -3,7 +3,9 @@
 namespace SM\Report\Repositories;
 
 use Exception;
+use Magento\Catalog\Model\CategoryFactory;
 use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Framework\App\ObjectManager;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Locale\ListsInterface;
@@ -24,9 +26,9 @@ use Magento\Catalog\Model\ProductFactory;
 
 class SalesManagement extends ServiceAbstract
 {
-    const GROUP_BY_ORDER = "sales_summary,user,outlet,register,customer,customer_group,magento_website,magento_storeview,payment_method,shipping_method,order_status,currency,day_of_week,hour,region,reference_number";
+    const GROUP_BY_ORDER = "sales_summary,user,outlet,register,customer,customer_group,magento_website,magento_storeview,payment_method,shipping_method,order_status,currency,day_of_week,hour,region,reference_number,motetary";
 
-    const GROUP_BY_ITEM = "product,manufacturer,category";
+    const GROUP_BY_ITEM = "product,manufacturer,category,order_item";
     /**
      * @var SM\Report\Model\ResourceModel\Order\CollectionFactory
      */
@@ -45,6 +47,11 @@ class SalesManagement extends ServiceAbstract
      * @var \Magento\Customer\Api\CustomerRepositoryInterface
      */
     private $customerRepositoryInterface;
+
+    /**
+     * @var \Magento\Catalog\Api\CategoryRepositoryInterface
+     */
+    private $categoryRepositoryInterface;
 
     /*
     * @var \Magento\Payment\Helper\Data
@@ -74,6 +81,10 @@ class SalesManagement extends ServiceAbstract
      * @var \Magento\Catalog\Model\Product
      */
     protected $productFactory;
+    /**
+     * @var \Magento\Catalog\Model\Category
+     */
+    protected $categoryFactory;
 
     /**
      * SalesManagement constructor.
@@ -85,11 +96,13 @@ class SalesManagement extends ServiceAbstract
      * @param \SM\Report\Model\ResourceModel\Order\CollectionFactory            $salesReportOrderCollectionFactory
      * @param \SM\Report\Model\ResourceModel\Order\Item\CollectionFactory       $salesReportOrderItemCollectionFactory
      * @param \Magento\Customer\Api\CustomerRepositoryInterface                 $customerRepositoryInterface
+     * @param \Magento\Catalog\Api\CategoryRepositoryInterface                 $categoryRepositoryInterface
      * @param \Magento\Payment\Helper\Data                                      $paymentHelper
      * @param \SM\Report\Helper\Data                                            $reportHelper
      * @param \SM\Payment\Model\RetailPaymentRepository                         $retailPaymentRepository
      * @param \Magento\User\Model\UserFactory                                   $userFactory
      * @param \Magento\Catalog\Model\ProductFactory                             $productFactory
+     * @param \Magento\Catalog\Model\CategoryFactory                            $categoryFactory
      * @param \SM\Shift\Model\ResourceModel\RetailTransaction\CollectionFactory $transactionCollectionFactory
      */
     public function __construct(
@@ -100,11 +113,13 @@ class SalesManagement extends ServiceAbstract
         CollectionFactory $salesReportOrderCollectionFactory,
         SaleReportOrderItemCollectionFactory $salesReportOrderItemCollectionFactory,
         CustomerRepositoryInterface $customerRepositoryInterface,
+        CategoryRepositoryInterface $categoryRepositoryInterface,
         Data $paymentHelper,
         \SM\Report\Helper\Data $reportHelper,
         RetailPaymentRepository $retailPaymentRepository,
         UserFactory $userFactory,
         ProductFactory $productFactory,
+        CategoryFactory $categoryFactory,
         TransactionCollectionFactory $transactionCollectionFactory
     ) {
         $this->transactionCollectionFactory          = $transactionCollectionFactory;
@@ -112,10 +127,12 @@ class SalesManagement extends ServiceAbstract
         $this->salesReportOrderItemCollectionFactory = $salesReportOrderItemCollectionFactory;
         $this->salesReportOrderCollectionFactory     = $salesReportOrderCollectionFactory;
         $this->customerRepositoryInterface           = $customerRepositoryInterface;
+        $this->categoryRepositoryInterface           = $categoryRepositoryInterface;
         $this->reportHelper                         = $reportHelper;
         $this->paymentHelper                        = $paymentHelper;
         $this->userFactory                           = $userFactory;
         $this->productFactory                        = $productFactory;
+        $this->categoryFactory                        = $categoryFactory;
         $this->localeLists                          = $localeLists;
         parent::__construct($requestInterface, $dataConfig, $storeManager);
     }
@@ -235,7 +252,13 @@ class SalesManagement extends ServiceAbstract
                 }
             }
             foreach ($collection as $item) {
-                $group[] = $this->convertOutputData($data, $item, null, $extra_info);
+                $key = false;
+                if ($reportType == 'monetary') {
+                    $key = array_search($item->getData('order_id'),array_column($group, 'data'));
+                }
+                if ('integer' != getType($key)) {
+                    $group[] = $this->convertOutputData($data, $item, null, $extra_info);
+                }
             }
         } else {
             foreach ($dateRanger as $date) {
@@ -282,6 +305,46 @@ class SalesManagement extends ServiceAbstract
                                 'grand_total'       => $item->getData('grand_total'),
                                 'order_count'       => $item->getData('order_count')];
                             $xGroup['value'][] = $xItem;
+                        }
+                    } else if ($reportType == "monetary") {
+                        $xGroup['value'] = [];
+                        foreach ($collection as $item) {
+                            $key = array_search($item->getData('order_id'),array_column($xGroup['value'], 'order_id'));
+                            if ($key !== false) {
+                                array_push(
+                                    $xGroup['value'][$key]['payments'],
+                                    [
+                                        'payment_id' => $item->getData('payment_id'),
+                                        'payment_title' => $item->getData('payment_title'),
+                                        'payment_type' => $item->getData('payment_type'),
+                                        'amount' => $item->getData('amount')
+                                    ]
+                                );
+                            } else {
+                                $payments = [];
+                                if ($item->getData('payment_id')) {
+                                    array_push(
+                                        $payments,
+                                        [
+                                            'payment_id' => $item->getData('payment_id'),
+                                            'payment_title' => $item->getData('payment_title'),
+                                            'payment_type' => $item->getData('payment_type'),
+                                            'amount' => $item->getData('amount')
+                                        ]
+                                    );
+                                }
+                                $item->setData('payments', $payments);
+                                $customer = $this->customerRepositoryInterface->getById($item->getData('customer_id'));
+                                if ($customer) {
+                                    $item->setData('customer_email', $customer->getEmail());
+                                    $item->setData('customer_name', $customer->getFirstname() . " " . $customer->getLastName());
+                                    $item->setData('customer_phone', $item->getData('customer_telephone'));
+                                    $item->setData('customer_group_code', $item->getData('customer_group_code'));
+                                    $item->setData('data_report_type', $item->getData('order_id'));
+                                }
+                                $item->setData('store_view_code', $item->getStore()->getCode());
+                                $xGroup['value'][] = $item->getData();
+                            }
                         }
                     } else {
                         foreach ($collection as $item) {
@@ -364,6 +427,7 @@ class SalesManagement extends ServiceAbstract
 
     public function getSalesReportFromItems($data, $dateRanger, $is_getGroupData = false,$itemDetail = null,$dataGroupBy = null)
     {
+        $reportType = $data['type'];
         $group      = [];
         if ($is_getGroupData) {
             $dateStart = $dateRanger['date_start_GMT'];
@@ -383,7 +447,13 @@ class SalesManagement extends ServiceAbstract
                                    ->getSalesReportFromOrderItemCollection($data, $dateStart, $dateEnd, $itemDetail);
             }
             foreach ($collection as $item) {
-                $group[] = $this->convertOutputData($data, $item);
+                $key = false;
+                if ($reportType == 'order_item') {
+                    $key = array_search($item->getData('order_item_id'),array_column($group, 'data'));
+                }
+                if ('integer' != getType($key)) {
+                    $group[] = $this->convertOutputData($data, $item);
+                }
             }
         } else {
             foreach ($dateRanger as $date) {
@@ -399,67 +469,117 @@ class SalesManagement extends ServiceAbstract
                 if ($collection->count() == 0) {
                     $xGroup['value'][] = null;
                 } else {
-                    foreach ($collection as $item) {
-                        $xItem = new SalesReportItem();
-                        $xItem->addData($item->getData());
-                        $this->convertOutputData($data, $item, $xItem);
-                        if ($xItem->getData('product_type') == "bundle"
-                            || $xItem->getData('product_type') == "configurable") {
-                            $xItem->setData('total_cost', $item->getData('total_cost_for_parent_item'));
+                    if ($reportType == 'order_item') {
+                        $xGroup['value'] = [];
+                        foreach ($collection as $item) {
+                            $key = array_search($item->getData('order_item_id'),array_column($xGroup['value'], 'order_item_id'));
+                            if ($key !== false) {
+                                array_push(
+                                    $xGroup['value'][$key]['payments'],
+                                    [
+                                        'payment_id' => $item->getData('payment_id'),
+                                        'payment_title' => $item->getData('payment_title'),
+                                        'payment_type' => $item->getData('payment_type'),
+                                        'base_row_payment_amount' => $item->getData('base_row_payment_amount')
+                                    ]
+                                );
+                            } else {
+                                $payments = [];
+                                if ($item->getData('payment_id')) {
+                                    array_push(
+                                        $payments,
+                                        [
+                                            'payment_id' => $item->getData('payment_id'),
+                                            'payment_title' => $item->getData('payment_title'),
+                                            'payment_type' => $item->getData('payment_type'),
+                                            'base_row_payment_amount' => $item->getData('base_row_payment_amount')
+                                        ]
+                                    );
+                                }
+                                $item->setData('payments', $payments);
+                                $customer = $this->customerRepositoryInterface->getById($item->getData('customer_id'));
+                                if ($customer) {
+                                    $item->setData('customer_email', $customer->getEmail());
+                                    $item->setData('customer_name', $customer->getFirstname() . " " . $customer->getLastName());
+                                    $item->setData('customer_phone', $item->getData('customer_telephone'));
+                                    $item->setData('customer_group_code', $item->getData('customer_group_code'));
+                                    $item->setData('data_report_type', $item->getData('order_item_id'));
+                                }
+                                $product = $this->productFactory->create()->load($item->getData('product_id'));
+                                $item->setData('product_sku', $product->getSku());
+                                $cats = $product->getCategoryIds();
+                                if(count($cats)){
+                                    $firstCategoryId = $cats[0];
+                                    $_category = $this->categoryFactory->create()->load($firstCategoryId);
+                                    $item->setData('category_name', $_category->getName());
+                                }
+                                $item->setData('store_view_code', $item->getStore()->getCode());
+                                $xGroup['value'][] = $item->getData();
+                            }
                         }
-                        $grossProfit = $item->getData('revenue') - $item->getData('total_cost');
-                        $xItem->setData('gross_profit', floatval($grossProfit));
-                        if ($item->getData('revenue') != 0) {
-                            $xItem->setData('margin', $grossProfit / ($item->getData('revenue')));
-                        } else {
-                            $xItem->setData('margin', $grossProfit / (1));
+                    } else {
+                        foreach ($collection as $item) {
+                            $xItem = new SalesReportItem();
+                            $xItem->addData($item->getData());
+                            $this->convertOutputData($data, $item, $xItem);
+                            if ($xItem->getData('product_type') == "bundle"
+                                || $xItem->getData('product_type') == "configurable") {
+                                $xItem->setData('total_cost', $item->getData('total_cost_for_parent_item'));
+                            }
+                            $grossProfit = $item->getData('revenue') - $item->getData('total_cost');
+                            $xItem->setData('gross_profit', floatval($grossProfit));
+                            if ($item->getData('revenue') != 0) {
+                                $xItem->setData('margin', $grossProfit / ($item->getData('revenue')));
+                            } else {
+                                $xItem->setData('margin', $grossProfit / (1));
+                            }
+                            if ($item->getData('order_count') != 0) {
+                                $xItem->setData(
+                                    'cart_value',
+                                    $item->getData('revenue') / ($item->getData('order_count'))
+                                );
+                            } else {
+                                $xItem->setData(
+                                    'cart_value',
+                                    $item->getData('revenue') / (1)
+                                );
+                            }
+                            if ($item->getData('order_count') != 0) {
+                                $xItem->setData(
+                                    'cart_value_incl_tax',
+                                    $item->getData('grand_total') / ($item->getData('order_count'))
+                                );
+                            } else {
+                                $xItem->setData(
+                                    'cart_value_incl_tax',
+                                    $item->getData('grand_total') / (1)
+                                );
+                            }
+                            if (($item->getData('base_row_total_product') + $item->getData('discount_amount')) != 0) {
+                                $xItem->setData(
+                                    'discount_percent',
+                                    $item->getData('discount_amount') / (($item->getData('base_row_total_product') + $item->getData('discount_amount')))
+                                );
+                            } else {
+                                $xItem->setData(
+                                    'discount_percent',
+                                    $item->getData('discount_amount') / (1)
+                                );
+                            }
+                            if ($item->getData('total_cart_size') != 0) {
+                                $xItem->setData(
+                                    'return_percent',
+                                    $item->getData('total_refund_items') / ($item->getData('total_cart_size'))
+                                );
+                            } else {
+                                $xItem->setData(
+                                    'return_percent',
+                                    $item->getData('total_refund_items') / (1)
+                                );
+                            }
+                            $xItem->setData('return_count', $item->getData('total_refund_items'));
+                            $xGroup['value'][] = $xItem->getData();
                         }
-                        if ($item->getData('order_count') != 0) {
-                            $xItem->setData(
-                                'cart_value',
-                                $item->getData('revenue') / ($item->getData('order_count'))
-                            );
-                        } else {
-                            $xItem->setData(
-                                'cart_value',
-                                $item->getData('revenue') / (1)
-                            );
-                        }
-                        if ($item->getData('order_count') != 0) {
-                            $xItem->setData(
-                                'cart_value_incl_tax',
-                                $item->getData('grand_total') / ($item->getData('order_count'))
-                            );
-                        } else {
-                            $xItem->setData(
-                                'cart_value_incl_tax',
-                                $item->getData('grand_total') / (1)
-                            );
-                        }
-                        if (($item->getData('base_row_total_product') + $item->getData('discount_amount')) != 0) {
-                            $xItem->setData(
-                                'discount_percent',
-                                $item->getData('discount_amount') / (($item->getData('base_row_total_product') + $item->getData('discount_amount')))
-                            );
-                        } else {
-                            $xItem->setData(
-                                'discount_percent',
-                                $item->getData('discount_amount') / (1)
-                            );
-                        }
-                        if ($item->getData('total_cart_size') != 0) {
-                            $xItem->setData(
-                                'return_percent',
-                                $item->getData('total_refund_items') / ($item->getData('total_cart_size'))
-                            );
-                        } else {
-                            $xItem->setData(
-                                'return_percent',
-                                $item->getData('total_refund_items') / (1)
-                            );
-                        }
-                        $xItem->setData('return_count', $item->getData('total_refund_items'));
-                        $xGroup['value'][] = $xItem->getData();
                     }
                 }
                 $group[] = $xGroup;
@@ -716,6 +836,14 @@ class SalesManagement extends ServiceAbstract
                     $data       = $item->getData("category_id");
                     $data_value = $item->getData('category_name');
                 }
+                break;
+            case "monetary":
+                $data       = $item->getData("order_id");
+                $data_value = $item->getData('created_at');
+                break;
+            case "order_item":
+                $data       = $item->getData("order_item_id");
+                $data_value = 'Bán lẻ';
                 break;
             default:
                 $data       = $item->getData("name");
