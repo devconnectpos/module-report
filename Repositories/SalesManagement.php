@@ -23,6 +23,7 @@ use SM\XRetail\Helper\DataConfig;
 use SM\XRetail\Repositories\Contract\ServiceAbstract;
 use SM\Core\Api\Data\SalesReportItem;
 use Magento\Catalog\Model\ProductFactory;
+use Magento\Customer\Api\AddressRepositoryInterface;
 
 class SalesManagement extends ServiceAbstract
 {
@@ -87,6 +88,11 @@ class SalesManagement extends ServiceAbstract
     protected $categoryFactory;
 
     /**
+     * @var \Magento\Customer\Api\AddressRepositoryInterface
+     */
+    protected $addressRepository;
+
+    /**
      * SalesManagement constructor.
      *
      * @param \Magento\Framework\App\RequestInterface                           $requestInterface
@@ -104,6 +110,7 @@ class SalesManagement extends ServiceAbstract
      * @param \Magento\Catalog\Model\ProductFactory                             $productFactory
      * @param \Magento\Catalog\Model\CategoryFactory                            $categoryFactory
      * @param \SM\Shift\Model\ResourceModel\RetailTransaction\CollectionFactory $transactionCollectionFactory
+     * @param \Magento\Customer\Api\AddressRepositoryInterface                  $addressRepository
      */
     public function __construct(
         RequestInterface $requestInterface,
@@ -120,7 +127,8 @@ class SalesManagement extends ServiceAbstract
         UserFactory $userFactory,
         ProductFactory $productFactory,
         CategoryFactory $categoryFactory,
-        TransactionCollectionFactory $transactionCollectionFactory
+        TransactionCollectionFactory $transactionCollectionFactory,
+        AddressRepositoryInterface $addressRepository
     ) {
         $this->transactionCollectionFactory          = $transactionCollectionFactory;
         $this->retailPaymentRepository              = $retailPaymentRepository;
@@ -134,6 +142,7 @@ class SalesManagement extends ServiceAbstract
         $this->productFactory                        = $productFactory;
         $this->categoryFactory                        = $categoryFactory;
         $this->localeLists                          = $localeLists;
+        $this->addressRepository                          = $addressRepository;
         parent::__construct($requestInterface, $dataConfig, $storeManager);
     }
 
@@ -336,9 +345,10 @@ class SalesManagement extends ServiceAbstract
                                 $item->setData('payments', $payments);
                                 $customer = $this->customerRepositoryInterface->getById($item->getData('customer_id'));
                                 if ($customer) {
+                                    $billingAddressId = $customer->getDefaultBilling();
                                     $item->setData('customer_email', $customer->getEmail());
                                     $item->setData('customer_name', $customer->getFirstname() . " " . $customer->getLastName());
-                                    $item->setData('customer_phone', $item->getData('customer_telephone'));
+                                    $item->setData('customer_phone', $billingAddressId ? $this->addressRepository->getById($billingAddressId)->getTelephone() : '');
                                     $item->setData('customer_group_code', $item->getData('customer_group_code'));
                                     $item->setData('data_report_type', $item->getData('order_id'));
                                 }
@@ -499,9 +509,10 @@ class SalesManagement extends ServiceAbstract
                                 $item->setData('payments', $payments);
                                 $customer = $this->customerRepositoryInterface->getById($item->getData('customer_id'));
                                 if ($customer) {
+                                    $billingAddressId = $customer->getDefaultBilling();
                                     $item->setData('customer_email', $customer->getEmail());
                                     $item->setData('customer_name', $customer->getFirstname() . " " . $customer->getLastName());
-                                    $item->setData('customer_phone', $item->getData('customer_telephone'));
+                                    $item->setData('customer_phone', $billingAddressId ? $this->addressRepository->getById($billingAddressId)->getTelephone() : '');
                                     $item->setData('customer_group_code', $item->getData('customer_group_code'));
                                     $item->setData('data_report_type', $item->getData('order_item_id'));
                                 }
