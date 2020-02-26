@@ -510,7 +510,7 @@ class SalesManagement extends ServiceAbstract
                                 $item->setData('product_unit', $product->getData('unit'));
                                 $cats = $product->getCategoryIds();
                                 if(count($cats)){
-                                    $firstCategoryId = $cats[0];
+                                    $firstCategoryId = $cats[count($cats)-1];
                                     $_category = $this->categoryFactory->create()->load($firstCategoryId);
                                     $item->setData('category_name', $_category->getName());
                                 }
