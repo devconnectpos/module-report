@@ -317,7 +317,7 @@ class SalesManagement extends ServiceAbstract
                                         'payment_id' => $item->getData('payment_id'),
                                         'payment_title' => $item->getData('payment_title'),
                                         'payment_type' => $item->getData('payment_type'),
-                                        'amount' => $item->getData('amount')
+                                        'payment_base_amount' => $item->getData('payment_base_amount')
                                     ]
                                 );
                             } else {
@@ -329,7 +329,7 @@ class SalesManagement extends ServiceAbstract
                                             'payment_id' => $item->getData('payment_id'),
                                             'payment_title' => $item->getData('payment_title'),
                                             'payment_type' => $item->getData('payment_type'),
-                                            'amount' => $item->getData('amount')
+                                            'payment_base_amount' => $item->getData('payment_base_amount')
                                         ]
                                     );
                                 }
@@ -480,7 +480,7 @@ class SalesManagement extends ServiceAbstract
                                         'payment_id' => $item->getData('payment_id'),
                                         'payment_title' => $item->getData('payment_title'),
                                         'payment_type' => $item->getData('payment_type'),
-                                        'base_row_payment_amount' => $item->getData('base_row_payment_amount')
+                                        'payment_base_amount' => $item->getData('base_row_payment_amount')
                                     ]
                                 );
                             } else {
@@ -492,7 +492,7 @@ class SalesManagement extends ServiceAbstract
                                             'payment_id' => $item->getData('payment_id'),
                                             'payment_title' => $item->getData('payment_title'),
                                             'payment_type' => $item->getData('payment_type'),
-                                            'base_row_payment_amount' => $item->getData('base_row_payment_amount')
+                                            'payment_base_amount' => $item->getData('base_row_payment_amount')
                                         ]
                                     );
                                 }
@@ -507,6 +507,7 @@ class SalesManagement extends ServiceAbstract
                                 }
                                 $product = $this->productFactory->create()->load($item->getData('product_id'));
                                 $item->setData('product_sku', $product->getSku());
+                                $item->setData('product_unit', $product->getData('unit'));
                                 $cats = $product->getCategoryIds();
                                 if(count($cats)){
                                     $firstCategoryId = $cats[0];

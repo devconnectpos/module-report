@@ -323,8 +323,11 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
         // doi voi nhung product co kieu configuable hoac bundle :
         // cost duoc tinh theo san pham simple di cung no nen phai tinh rieng cost cho nhung product nay
         $this->getCostForParrentItem();
-
-        $this->addFieldToFilter('sfo.retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
+        if ($typeReport == 'order_item') {
+            $this->addFieldToFilter('sfo.shipping_method', 'retailshipping_retailshipping');
+        } else {
+            $this->addFieldToFilter('sfo.retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
+        }
         // add filter date time
         $this->reportHelper->addDateRangerFilter($this, $dateStart, $dateEnd);
         switch ($typeReport) {

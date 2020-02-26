@@ -453,9 +453,14 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
         if ($typeReport == 'order_status' && $isSelectMagentoStatus && $data['item_filter'] == "magento_status") {
             $this->addFieldToFilter('retail_status', ['null' => true]);
         } else {
-            // khong lay order nhung order la PARTIALLY payment
+            if ($typeReport == 'monetary') {
+                $this->addFieldToFilter('shipping_method', 'retailshipping_retailshipping');
+
+            } else {
+                // khong lay order nhung order la PARTIALLY payment
                 $this->addFieldToFilter('retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
                 $this->addFieldToFilter('base_total_invoiced', ['neq' => 'NULL']);
+            }
         }
         $globalTz = $this->reportHelper->getTimezone(true);
         switch ($typeReport) {
@@ -703,14 +708,15 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                 $this->getSelect()->group('hour');
                 break;
             case "monetary":
+                $this->getSelect()->group('entity_id');
                 $this->getSelect()->joinLeft(
                     ['sm_retail_transaction' => $this->getTable('sm_retail_transaction')],
                     'sm_retail_transaction.order_id = main_table.entity_id',
                     [
-                        'payment_id',
-                        'payment_title',
-                        'payment_type',
-                        'amount',
+                        'payment_id' => 'payment_id',
+                        'payment_title' => 'payment_title',
+                        'payment_type' => 'payment_type',
+                        'payment_base_amount' => 'base_amount',
                     ]
                 );
                 $this->getSelect()->group('id');
@@ -742,11 +748,18 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                     'customer_id' => 'customer_id',
                     'store_id' => 'store_id',
                     'created_at'             => "MIN(main_table.created_at)",
-                    'cashier_id'             => "MIN(main_table.user_id)",
-                    'subtotal'  => 'subtotal',
-                    'base_discount_amount' => 'base_discount_amount',
+                    'user_id'             => "MIN(main_table.user_id)",
+                    'base_subtotal'  => 'base_subtotal',
+                    'base_discount_amount'  => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('%s + %s', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_discount_amount)', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_discount_per_item)', 0)
+                        )
+                    ),
                     'base_shipping_amount' => 'base_shipping_amount',
                     'base_grand_total' => 'base_grand_total',
+                    'base_tax_amount' => 'base_tax_amount',
                     'base_total_paid' => 'base_total_paid',
                     'base_total_due' => 'base_total_due',
                     'shipping_method' => 'shipping_method'
