@@ -431,6 +431,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                 break;
             case "order_item":
                 $this->getSelect()->group('item_id');
+                $this->setOrder('item_id','ASC');
                 $this->getSelect()->joinLeft(
                     ['sm_retail_transaction' => $this->getTable('sm_retail_transaction')],
                     'sm_retail_transaction.order_id = main_table.order_id',
@@ -441,6 +442,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                     ]
                 );
                 $this->getSelect()->group('sm_retail_transaction.id');
+                $this->setOrder('item_id', 'ASC');
                 break;
             default:
                 break;
@@ -512,11 +514,15 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                     ),
                     'base_row_payment_amount' => new Zend_Db_Expr(
                         sprintf(
-                            $connection->getIfNullSql('SUM((%s + %s - %s) / %s * %s)', 0),
+                            $connection->getIfNullSql('SUM((%s + %s - %s) / (%s + %s + %s - %s - %s) * %s)', 0),
                             $connection->getIfNullSql('main_table.base_row_total', '0'),
                             $connection->getIfNullSql('main_table.base_tax_amount', '0'),
                             $connection->getIfNullSql('main_table.base_discount_amount', '0'),
-                            $connection->getIfNullSql('sfo.base_grand_total', '0'),
+                            $connection->getIfNullSql('sfo.base_subtotal', '0'),
+                            $connection->getIfNullSql('sfo.base_tax_amount', '0'),
+                            $connection->getIfNullSql('sfo.base_shipping_amount', '0'),
+                            $connection->getIfNullSql('sfo.base_discount_amount', '0'),
+                            $connection->getIfNullSql('sfo.base_discount_per_item', '0'),
                             $connection->getIfNullSql('sm_retail_transaction.base_amount', '0')
                         )
                     ),

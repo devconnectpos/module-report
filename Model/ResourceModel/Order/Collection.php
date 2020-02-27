@@ -708,6 +708,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                 $this->getSelect()->group('hour');
                 break;
             case "monetary":
+                $this->setOrder('entity_id', 'ASC');
                 $this->getSelect()->group('entity_id');
                 $this->getSelect()->joinLeft(
                     ['sm_retail_transaction' => $this->getTable('sm_retail_transaction')],
@@ -758,7 +759,16 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                         )
                     ),
                     'base_shipping_amount' => 'base_shipping_amount',
-                    'base_grand_total' => 'base_grand_total',
+                    'base_grand_total'  => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('%s + %s + %s - %s - %s', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_subtotal)', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_shipping_amount)', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_tax_amount)', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_discount_amount)', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_discount_per_item)', 0)
+                        )
+                    ),
                     'base_tax_amount' => 'base_tax_amount',
                     'base_total_paid' => 'base_total_paid',
                     'base_total_due' => 'base_total_due',
