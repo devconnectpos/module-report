@@ -494,6 +494,14 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                     'base_price'  => 'base_price',
                     'base_row_total'  => 'base_row_total',
                     'base_discount_amount' => 'base_discount_amount',
+                    'base_total_refunded' => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('SUM( - %s + %s - %s)', 0),
+                            $connection->getIfNullSql('main_table.base_amount_refunded', '0'),
+                            $connection->getIfNullSql('main_table.base_discount_refunded', '0'),
+                            $connection->getIfNullSql('main_table.base_tax_refunded', '0')
+                        )
+                    ),
                     'base_tax_amount' => 'base_tax_amount',
                     'created_at' => 'created_at',
                     'base_order_grand_total' => 'sfo.base_grand_total',
@@ -506,23 +514,30 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                     ),
                     'base_row_subtotal_incl_tax' => new Zend_Db_Expr(
                         sprintf(
-                            $connection->getIfNullSql('SUM(%s + %s- %s)', 0),
+                            $connection->getIfNullSql('SUM(%s + %s- %s - %s + %s - %s)', 0),
                             $connection->getIfNullSql('main_table.base_row_total', '0'),
                             $connection->getIfNullSql('main_table.base_tax_amount', '0'),
-                            $connection->getIfNullSql('main_table.base_discount_amount', '0')
+                            $connection->getIfNullSql('main_table.base_discount_amount', '0'),
+                            $connection->getIfNullSql('main_table.base_amount_refunded', '0'),
+                            $connection->getIfNullSql('main_table.base_discount_refunded', '0'),
+                            $connection->getIfNullSql('main_table.base_tax_refunded', '0')
                         )
                     ),
                     'base_row_payment_amount' => new Zend_Db_Expr(
                         sprintf(
-                            $connection->getIfNullSql('SUM((%s + %s - %s) / (%s + %s + %s - %s - %s) * %s)', 0),
+                            $connection->getIfNullSql('SUM((%s + %s - %s - %s + %s - %s) / (%s + %s + %s - %s + %s - %s) * %s)', 0),
                             $connection->getIfNullSql('main_table.base_row_total', '0'),
                             $connection->getIfNullSql('main_table.base_tax_amount', '0'),
                             $connection->getIfNullSql('main_table.base_discount_amount', '0'),
+                            $connection->getIfNullSql('main_table.base_amount_refunded', '0'),
+                            $connection->getIfNullSql('main_table.base_discount_refunded', '0'),
+                            $connection->getIfNullSql('main_table.base_tax_refunded', '0'),
                             $connection->getIfNullSql('sfo.base_subtotal', '0'),
                             $connection->getIfNullSql('sfo.base_tax_amount', '0'),
                             $connection->getIfNullSql('sfo.base_shipping_amount', '0'),
                             $connection->getIfNullSql('sfo.base_discount_amount', '0'),
                             $connection->getIfNullSql('sfo.base_discount_per_item', '0'),
+                            $connection->getIfNullSql('sfo.base_total_refunded', '0'),
                             $connection->getIfNullSql('sm_retail_transaction.base_amount', '0')
                         )
                     ),

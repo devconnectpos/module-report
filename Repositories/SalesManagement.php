@@ -523,7 +523,10 @@ class SalesManagement extends ServiceAbstract
                                 if(count($cats)){
                                     $firstCategoryId = $cats[count($cats)-1];
                                     $_category = $this->categoryFactory->create()->load($firstCategoryId);
-                                    $item->setData('category_name', $_category->getName());
+                                    $item->setData('category_name', $product->getData('master_category') ? $product->getData('master_category') :$_category->getName());
+                                } else {
+                                    $item->setData('category_name', $product->getData('master_category'));
+
                                 }
                                 $item->setData('store_view_code', $item->getStore()->getCode());
                                 $xGroup['value'][] = $item->getData();
