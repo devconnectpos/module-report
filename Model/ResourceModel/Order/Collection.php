@@ -753,7 +753,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                     'base_subtotal'  => 'base_subtotal',
                     'base_discount_amount'  => new Zend_Db_Expr(
                         sprintf(
-                            $connection->getIfNullSql('%s + %s', 0),
+                            $connection->getIfNullSql('%s - %s', 0),
                             $connection->getIfNullSql('SUM(main_table.base_discount_amount)', 0),
                             $connection->getIfNullSql('SUM(main_table.base_discount_per_item)', 0)
                         )
@@ -761,16 +761,23 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                     'base_shipping_amount' => 'base_shipping_amount',
                     'base_grand_total'  => new Zend_Db_Expr(
                         sprintf(
-                            $connection->getIfNullSql('%s + %s + %s - %s - %s', 0),
+                            $connection->getIfNullSql('%s + %s + %s - %s + %s - %s', 0),
                             $connection->getIfNullSql('SUM(main_table.base_subtotal)', 0),
                             $connection->getIfNullSql('SUM(main_table.base_shipping_amount)', 0),
                             $connection->getIfNullSql('SUM(main_table.base_tax_amount)', 0),
                             $connection->getIfNullSql('SUM(main_table.base_discount_amount)', 0),
-                            $connection->getIfNullSql('SUM(main_table.base_discount_per_item)', 0)
+                            $connection->getIfNullSql('SUM(main_table.base_discount_per_item)', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_total_refunded)', 0)
                         )
                     ),
                     'base_tax_amount' => 'base_tax_amount',
                     'base_total_paid' => 'base_total_paid',
+                    'base_total_refunded'  => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql(' - %s', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_total_refunded)', 0)
+                        )
+                    ),
                     'base_total_due' => 'base_total_due',
                     'shipping_method' => 'shipping_method'
                 ]
