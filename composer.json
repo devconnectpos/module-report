@@ -2,7 +2,7 @@
 	"name": "connectpos/module-report",
 	"description": "N/A",
 	"type": "magento2-module",
-	"version": "20.02.26",
+	"version": "20.03.09",
 	"license": [
 		"proprietary"
 	],
