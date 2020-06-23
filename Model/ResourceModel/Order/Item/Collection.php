@@ -543,6 +543,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                     ),
                     'user_id' => 'sfo.user_id',
                     'sm_seller_ids' => 'sfo.sm_seller_ids',
+                    'sm_seller_username' => 'sfo.sm_seller_username',
                     'retail_note' => 'sfo.retail_note'
                 ]
             );
