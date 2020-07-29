@@ -644,7 +644,7 @@ class SalesManagement extends ServiceAbstract
         $collection->addFieldToFilter('sorder.retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
         $collection->getSelect()->columns(
             [
-                'grand_total' => 'SUM(main_table.base_amount)',
+                'grand_total' => 'SUM(CASE WHEN main_table.base_amount = 0 THEN main_table.amount ELSE main_table.base_amount END)',
                 'order_count' => 'COUNT(DISTINCT order_id)'
             ]
         );
