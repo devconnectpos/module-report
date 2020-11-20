@@ -533,6 +533,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                         'sm_outlet.id = outlet_id',
                         ['name' => 'sm_outlet.name']
                     );
+                    $this->getSelect()->where('main_table.outlet_id is not null');
                     $this->addAttributeToSelect('outlet_id');
                     $this->getSelect()->group('outlet_id');
                 } else {
@@ -616,6 +617,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                     'sregister.id = register_id',
                     ['name' => 'sregister.name']
                 );
+                $this->getSelect()->where('main_table.register_id is not null');
                 $this->addAttributeToSelect('register_id');
                 $this->getSelect()->group('register_id');
                 break;
