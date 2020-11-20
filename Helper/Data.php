@@ -109,10 +109,10 @@ class Data
 
         if ($is_getGroupData) {
             return [
-                    'date_start'             => $date_start->format('Y-m-d 00:00:00'),
-                    'date_end'               => $date_end->format('Y-m-d 23:59:59'),
-                    'date_start_GMT' => $date_start_GMT->format('Y-m-d 00:00:00'),
-                    'date_end_GMT'   => $date_end_GMT->format('Y-m-d 23:59:59')];
+                    'date_start'             => $date_start->format('Y-m-d H:i:s'),
+                    'date_end'               => $date_end->format('Y-m-d H:i:s'),
+                    'date_start_GMT' => $date_start_GMT->format('Y-m-d H:i:s'),
+                    'date_end_GMT'   => $date_end_GMT->format('Y-m-d H:i:s')];
         }
         if ($is_date_compare && is_array($period_data)) {
             $period_type = $period_data['range_type'];
@@ -131,8 +131,8 @@ class Data
                             $d_end   = $start_date->modify('+ 1 year - 1 day')->format('Y-m-d 23:59:59');
                             $start_date->modify("+1 day");
 
-                            $d_start_GMT = $start_date_GMT->format('Y-m-d H:i:00');
-                            $d_end_GMT   = $start_date_GMT->modify('+ 1 year - 1 minute ')->format('Y-m-d H:i:59');
+                            $d_start_GMT = $start_date_GMT->format('Y-m-d H:i:s');
+                            $d_end_GMT   = $start_date_GMT->modify('+ 1 year - 1 minute ')->format('Y-m-d H:i:s');
                             $start_date_GMT->modify("+ 1 minute ");
 
                             $dateRanger = new DataObject(
@@ -152,8 +152,8 @@ class Data
                             $d_end   = $start_date->modify(' + 3 months - 1 day')->format('Y-m-d 23:59:59');
                             $start_date->modify("+1 day");
 
-                            $d_start_GMT = $start_date_GMT->format('Y-m-d H:i:00');
-                            $d_end_GMT   = $start_date_GMT->modify('+ 3 months - 1 minute')->format('Y-m-d H:i:59');
+                            $d_start_GMT = $start_date_GMT->format('Y-m-d H:i:s');
+                            $d_end_GMT   = $start_date_GMT->modify('+ 3 months - 1 minute')->format('Y-m-d H:i:s');
                             $start_date_GMT->modify("+1 minute");
                             $dateRanger = new DataObject(
                                 [
@@ -172,8 +172,8 @@ class Data
                             $d_end   = $start_date->modify(' + 1 month - 1 day')->format('Y-m-d 23:59:59');
                             $start_date->modify("+1 day");
 
-                            $d_start_GMT = $start_date_GMT->format('Y-m-d H:i:00');
-                            $d_end_GMT   = $start_date_GMT->modify('+ 1 month - 1 minute')->format('Y-m-d 23:59:59');
+                            $d_start_GMT = $start_date_GMT->format('Y-m-d H:i:s');
+                            $d_end_GMT   = $start_date_GMT->modify('+ 1 month - 1 minute')->format('Y-m-d H:i:s');
                             $start_date_GMT->modify("+1 minute");
                             $dateRanger = new DataObject(
                                 [
@@ -192,8 +192,8 @@ class Data
                             $d_end   = $start_date->modify(' + 7 days - 1 day')->format('Y-m-d 23:59:59');
                             $start_date->modify("+1 day");
 
-                            $d_start_GMT = $start_date_GMT->format('Y-m-d H:i:00');
-                            $d_end_GMT   = $start_date_GMT->modify('+ 7 days - 1 minute')->format('Y-m-d 23:59:59');
+                            $d_start_GMT = $start_date_GMT->format('Y-m-d H:i:s');
+                            $d_end_GMT   = $start_date_GMT->modify('+ 7 days - 1 minute')->format('Y-m-d H:i:s');
                             $start_date_GMT->modify("+1 minute");
                             $dateRanger = new DataObject(
                                 [
@@ -212,8 +212,8 @@ class Data
                             $d_end   = $start_date->format('Y-m-d 23:59:59');
                             $start_date->modify("+1 day");
 
-                            $d_start_GMT = $start_date_GMT->format('Y-m-d 00:00:00');
-                            $d_end_GMT   = $start_date_GMT->modify('+ 1 day - 1 minute')->format('Y-m-d 23:59:59');
+                            $d_start_GMT = $start_date_GMT->format('Y-m-d H:i:s');
+                            $d_end_GMT   = $start_date_GMT->modify('+ 1 day - 1 minute')->format('Y-m-d H:i:s');
                             $start_date_GMT->modify("+1 minute");
                             $dateRanger = new DataObject(
                                 [
@@ -251,10 +251,10 @@ class Data
             } else {
                 $dateRanger = new DataObject(
                     [
-                        'date_start'             => $date_start->format('Y-m-d 00:00:00'),
-                        'date_end'               => $date_end->format('Y-m-d 23:59:59'),
-                        'date_start_GMT' => $date_start_GMT->format('Y-m-d 00:00:00'),
-                        'date_end_GMT'   => $date_end_GMT->format('Y-m-d 23:59:59')
+                        'date_start'             => $date_start->format('Y-m-d H:i:s'),
+                        'date_end'               => $date_end->format('Y-m-d H:i:s'),
+                        'date_start_GMT' => $date_start_GMT->format('Y-m-d H:i:s'),
+                        'date_end_GMT'   => $date_end_GMT->format('Y-m-d H:i:s')
                     ]
                 );
                 $datas      = [$dateRanger];
