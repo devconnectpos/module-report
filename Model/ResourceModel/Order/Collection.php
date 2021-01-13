@@ -112,10 +112,10 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
             $connection,
             $resource
         );
-        $this->orderItemCollectionFactory         = $collectionFactory;
-        $this->reportHelper                       = $reportHelper;
+        $this->orderItemCollectionFactory = $collectionFactory;
+        $this->reportHelper = $reportHelper;
         $this->retailTransactionCollectionFactory = $retailTransactionCollectionFactory;
-        $this->eavAttribute                       = $eavAttribute;
+        $this->eavAttribute = $eavAttribute;
     }
 
     /**
@@ -137,6 +137,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
      * Get range expression
      *
      * @param string $range
+     *
      * @return \Zend_Db_Expr
      */
     protected function getRangeExpression($range)
@@ -213,7 +214,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
 
         $discountAmountExpression = $this->getDiscountAmountExpression();
         $grandTotal = $this->getGrandTotal();
-        $discountRefundedExpression =  new DataObject(
+        $discountRefundedExpression = new DataObject(
             [
                 'expression' => '-(%s)',
                 'arguments'  => [
@@ -221,57 +222,58 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                 ],
             ]
         );
-        $discountRefunded =  vsprintf(
+        $discountRefunded = vsprintf(
             $discountRefundedExpression->getExpression(),
             $discountRefundedExpression->getArguments()
         );
         $this->getSelect()
-             ->columns(
-                 [
-                     'quantity'          => 'COUNT(main_table.entity_id)',
-                     'range'             => $tzRangeOffsetExpression,
-                     'list_customer'     => 'GROUP_CONCAT( DISTINCT main_table.customer_id)',
-                     'customer_count'    => 'COUNT(DISTINCT main_table.customer_id)',
-                     'grand_total'            => new Zend_Db_Expr(
-                         sprintf(
-                             $connection->getIfNullSql('%s - %s', 0),
-                             $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', 0),
-                             $connection->getIfNullSql('SUM(main_table.base_total_refunded)', 0)
-                         )
-                     ),
-                     'discount' => new Zend_Db_Expr(
-                         sprintf(
-                             'SUM(%s - %s)',
-                             $discountAmountExpression,
-                             $discountRefunded
-                         )
-                     ),
-                     'subtotal_incl_tax' => new Zend_Db_Expr(
-                         $connection->getIfNullSql('main_table.base_subtotal_incl_tax', 0)
-                     ),
-                     'discount_percent'  => new Zend_Db_Expr(
-                         vsprintf(
-                             'SUM(%s - %s)/SUM(%s + %s -%s)',
-                             [
-                                 $discountAmountExpression,
-                                 $discountRefunded,
-                                 $grandTotal,
-                                 $discountAmountExpression,
-                                 $discountRefunded]
-                         )
-                     ),
-                     'average_sales'     => new Zend_Db_Expr(
-                         sprintf('SUM(%s)/COUNT(main_table.entity_id)', $salesAmountExpression)
-                     ),
-                     'store_id'          => 'main_table.store_id',
-                     'outlet_id'         => 'main_table.outlet_id'
-                 ]
-             )
-             ->order('range ASC')
-             ->group($tzRangeOffsetExpression);
+            ->columns(
+                [
+                    'quantity'          => 'COUNT(main_table.entity_id)',
+                    'range'             => $tzRangeOffsetExpression,
+                    'list_customer'     => 'GROUP_CONCAT( DISTINCT main_table.customer_id)',
+                    'customer_count'    => 'COUNT(DISTINCT main_table.customer_id)',
+                    'grand_total'       => new Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('%s - %s', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', 0),
+                            $connection->getIfNullSql('SUM(main_table.base_total_refunded)', 0)
+                        )
+                    ),
+                    'discount'          => new Zend_Db_Expr(
+                        sprintf(
+                            'SUM(%s - %s)',
+                            $discountAmountExpression,
+                            $discountRefunded
+                        )
+                    ),
+                    'subtotal_incl_tax' => new Zend_Db_Expr(
+                        $connection->getIfNullSql('main_table.base_subtotal_incl_tax', 0)
+                    ),
+                    'discount_percent'  => new Zend_Db_Expr(
+                        vsprintf(
+                            'SUM(%s - %s)/SUM(%s + %s -%s)',
+                            [
+                                $discountAmountExpression,
+                                $discountRefunded,
+                                $grandTotal,
+                                $discountAmountExpression,
+                                $discountRefunded]
+                        )
+                    ),
+                    'average_sales'     => new Zend_Db_Expr(
+                        sprintf('SUM(%s)/COUNT(main_table.entity_id)', $salesAmountExpression)
+                    ),
+                    'store_id'          => 'main_table.store_id',
+                    'outlet_id'         => 'main_table.outlet_id',
+                ]
+            )
+            ->order('range ASC')
+            ->group($tzRangeOffsetExpression);
         $this->addFieldToFilter('retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
         $this->addFieldToFilter('base_total_invoiced', ['neq' => 'NULL']);
         $this->addFieldToFilter('created_at', $dateRange);
+
         return $this;
     }
 
@@ -287,7 +289,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
             $expressionTransferObject = new DataObject(
                 [
                     'expression' => '%s - %s',
-                    'arguments' => [
+                    'arguments'  => [
                         $connection->getIfNullSql('main_table.base_total_invoiced', 0),
                         $connection->getIfNullSql('main_table.base_total_refunded', 0),
                     ],
@@ -313,7 +315,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
     protected function getDiscountAmountExpression()
     {
         if (null === $this->discountAmountExpression) {
-            $connection               = $this->getConnection();
+            $connection = $this->getConnection();
             $expressionTransferObject = new DataObject(
                 [
                     'expression' => '-(%s)',
@@ -351,13 +353,13 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
     public function getDateRange($range, $customStart, $customEnd, $returnObjects = false)
     {
         $array_date_start = explode('/', $customStart);
-        $array_date_end   = explode('/', $customEnd);
+        $array_date_end = explode('/', $customEnd);
 
 
         $date_start_GMT = $this->_localeDate->date($array_date_start[0], null, false);
-        $date_end_GMT   = $this->_localeDate->date($array_date_end[0], null, false);
+        $date_end_GMT = $this->_localeDate->date($array_date_end[0], null, false);
 
-        $dateEnd   = new \DateTime($array_date_end[1]);
+        $dateEnd = new \DateTime($array_date_end[1]);
         $dateStart = new \DateTime($array_date_start[1]);
 
 
@@ -388,7 +390,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                 break;
             case 'custom':
                 $dateStart = $customStart ? $customStart : $dateEnd;
-                $dateEnd   = $customEnd ? $customEnd : $dateEnd;
+                $dateEnd = $customEnd ? $customEnd : $dateEnd;
                 break;
 
             case '1y':
@@ -400,8 +402,8 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                         ScopeInterface::SCOPE_STORE
                     )
                 );
-                $startMonth    = isset($startMonthDay[0]) ? (int)$startMonthDay[0] : 1;
-                $startDay      = isset($startMonthDay[1]) ? (int)$startMonthDay[1] : 1;
+                $startMonth = isset($startMonthDay[0]) ? (int)$startMonthDay[0] : 1;
+                $startDay = isset($startMonthDay[1]) ? (int)$startMonthDay[1] : 1;
                 $dateStart->setDate($dateStart->format('Y'), $startMonth, $startDay);
                 if ($range == '2y') {
                     $dateStart->modify('-1 year');
@@ -455,7 +457,6 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
         } else {
             if ($typeReport == 'monetary') {
                 $this->addFieldToFilter('shipping_method', 'retailshipping_retailshipping');
-
             } else {
                 // khong lay order nhung order la PARTIALLY payment
                 $this->addFieldToFilter('retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
@@ -493,7 +494,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                 $this->getSelect()->joinLeft(
                     ['category_varchar' => $this->getTable('catalog_category_entity_varchar')],
                     'category_product.category_id = category_varchar.row_id AND category_varchar.store_id = 0  AND category_varchar.attribute_id ='
-                    . $category_att_id,
+                    .$category_att_id,
                     ['category_name' => 'category_varchar.value']
                 );
                 if ($extra_info == 'region') {
@@ -553,7 +554,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                     $this->getSelect()->joinLeft(
                         ['category_varchar' => $this->getTable('catalog_category_entity_varchar')],
                         'category_product.category_id = category_varchar.row_id AND category_varchar.store_id = 0  AND category_varchar.attribute_id ='
-                        . $category_att_id,
+                        .$category_att_id,
                         ['category_name' => 'category_varchar.value']
                     );
                     $this->getSelect()->joinLeft(
@@ -631,7 +632,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                 if (!!$customer_telephone_att_id) {
                     $this->getSelect()->joinLeft(
                         ['cusvarchar' => $this->getTable('customer_entity_varchar')],
-                        'cusvarchar.entity_id = main_table.customer_id AND `cusvarchar`.`attribute_id` = ' . $customer_telephone_att_id,
+                        'cusvarchar.entity_id = main_table.customer_id AND `cusvarchar`.`attribute_id` = '.$customer_telephone_att_id,
                         ['customer_telephone' => 'cusvarchar.value']
                     );
                 }
@@ -716,9 +717,9 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                     ['sm_retail_transaction' => $this->getTable('sm_retail_transaction')],
                     'sm_retail_transaction.order_id = main_table.entity_id',
                     [
-                        'payment_id' => 'payment_id',
-                        'payment_title' => 'payment_title',
-                        'payment_type' => 'payment_type',
+                        'payment_id'          => 'payment_id',
+                        'payment_title'       => 'payment_title',
+                        'payment_type'        => 'payment_type',
                         'payment_base_amount' => 'base_amount',
                     ]
                 );
@@ -738,7 +739,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
     private function addDataToSelect($typeReport = null)
     {
         $connection = $this->getResource()->getConnection();
-        $select     = $this->getSelect();
+        $select = $this->getSelect();
         $select->columns(
             [
 
@@ -747,13 +748,13 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
         if ($typeReport == 'monetary') {
             $select->columns(
                 [
-                    'order_id' => 'entity_id',
-                    'customer_id' => 'customer_id',
-                    'store_id' => 'store_id',
-                    'created_at'             => "MIN(main_table.created_at)",
-                    'user_id'             => "MIN(main_table.user_id)",
-                    'base_subtotal'  => 'base_subtotal',
-                    'base_discount_amount'  => new Zend_Db_Expr(
+                    'order_id'             => 'entity_id',
+                    'customer_id'          => 'customer_id',
+                    'store_id'             => 'store_id',
+                    'created_at'           => "MIN(main_table.created_at)",
+                    'user_id'              => "MIN(main_table.user_id)",
+                    'base_subtotal'        => 'base_subtotal',
+                    'base_discount_amount' => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('%s - %s', 0),
                             $connection->getIfNullSql('SUM(main_table.base_discount_amount)', 0),
@@ -761,7 +762,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                         )
                     ),
                     'base_shipping_amount' => 'base_shipping_amount',
-                    'base_grand_total'  => new Zend_Db_Expr(
+                    'base_grand_total'     => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('%s + %s + %s - %s + %s - %s', 0),
                             $connection->getIfNullSql('SUM(main_table.base_subtotal)', 0),
@@ -772,30 +773,30 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                             $connection->getIfNullSql('SUM(main_table.base_total_refunded)', 0)
                         )
                     ),
-                    'base_tax_amount' => 'base_tax_amount',
-                    'base_total_paid' => 'base_total_paid',
+                    'base_tax_amount'      => 'base_tax_amount',
+                    'base_total_paid'      => 'base_total_paid',
                     'base_total_refunded'  => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql(' - %s', 0),
                             $connection->getIfNullSql('SUM(main_table.base_total_refunded)', 0)
                         )
                     ),
-                    'base_total_due' => 'base_total_due',
-                    'shipping_method' => 'shipping_method'
+                    'base_total_due'       => 'base_total_due',
+                    'shipping_method'      => 'shipping_method',
                 ]
             );
         } else {
             $select->columns(
                 [
-                    'total_shipping_amount'  => new Zend_Db_Expr(
+                    'total_shipping_amount'      => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('%s - %s', 0),
                             $connection->getIfNullSql('SUM(main_table.base_shipping_amount)', 0),
                             $connection->getIfNullSql('SUM(main_table.base_shipping_tax_amount)', 0)
                         )
                     ),
-                    'base_total_invoiced'    => $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', '0'),
-                    'revenue'                => new Zend_Db_Expr(
+                    'base_total_invoiced'        => $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', '0'),
+                    'revenue'                    => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('%s - %s - %s - (%s - %s - %s)', 0),
                             $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', '0'),
@@ -806,77 +807,78 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                             $connection->getIfNullSql('SUM(main_table.base_shipping_refunded)', '0')
                         )
                     ),
-                    'total_for_discount_percent'                => new Zend_Db_Expr(
+                    'total_for_discount_percent' => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('%s - %s', 0),
                             $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', 0),
                             $connection->getIfNullSql('SUM(main_table.base_total_refunded)', 0)
                         )
                     ),
-                    'grand_total'            => new Zend_Db_Expr(
+                    'grand_total'                => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('%s - %s', 0),
                             $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', 0),
                             $connection->getIfNullSql('SUM(main_table.base_total_refunded)', 0)
                         )
                     ),
-                    'base_row_total_product' => $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', '0'),
+                    'base_row_total_product'     => $connection->getIfNullSql('SUM(main_table.base_total_invoiced)', '0'),
                     //'total_tax'              => $connection->getIfNullSql('SUM(main_table.base_tax_amount)', '0'),
-                    'total_tax'             => new Zend_Db_Expr(
+                    'total_tax'                  => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('SUM(%s - %s)', 0),
                             $connection->getIfNullSql('main_table.base_tax_amount', '0'),
                             $connection->getIfNullSql('main_table.base_tax_refunded', '0')
                         )
                     ),
-                    'total_cart_size'        => $connection->getIfNullSql('SUM(main_table.total_item_count)', '0'),
-                    'cart_size'              => new Zend_Db_Expr(
+                    'total_cart_size'            => $connection->getIfNullSql('SUM(main_table.total_item_count)', '0'),
+                    'cart_size'                  => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('%s / %s', 0),
                             $connection->getIfNullSql('SUM(main_table.total_qty_ordered)', '0'),
                             'COUNT(main_table.entity_id)'
                         )
                     ),
-                    'customer_count'         => $connection->getIfNullSql('COUNT(distinct main_table.customer_id)', '0'),
-                    'discount_amount'        => new Zend_Db_Expr(
+                    'customer_count'             => $connection->getIfNullSql('COUNT(distinct main_table.customer_id)', '0'),
+                    'discount_amount'            => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('%s - %s', 0),
                             $connection->getIfNullSql('SUM(main_table.base_discount_invoiced)', '0'),
                             $connection->getIfNullSql('SUM(main_table.base_discount_refunded)', '0')
                         )
                     ),
-                    'first_sale'             => "MIN(main_table.created_at)",
-                    'last_sale'              => "MAX(main_table.created_at)",
-                    'item_sold'              => $connection->getIfNullSql('SUM(main_table.total_qty_ordered-items_order.refunded_items_count)', '0'),
-                    'order_count'            => 'COUNT(main_table.entity_id)',
-                    'shipping_amount'        => new Zend_Db_Expr(
+                    'first_sale'                 => "MIN(main_table.created_at)",
+                    'last_sale'                  => "MAX(main_table.created_at)",
+                    'item_sold'                  => $connection->getIfNullSql('SUM(main_table.total_qty_ordered-items_order.refunded_items_count)', '0'),
+                    'order_count'                => 'COUNT(main_table.entity_id)',
+                    'shipping_amount'            => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('SUM(%s - %s)', 0),
                             $connection->getIfNullSql('main_table.base_shipping_invoiced', '0'),
                             $connection->getIfNullSql('main_table.base_shipping_refunded', '0')
                         )
                     ),
-                    'shipping_tax'           => new Zend_Db_Expr(
+                    'shipping_tax'               => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('SUM(%s - %s)', 0),
                             $connection->getIfNullSql('main_table.base_shipping_tax_amount', '0'),
                             $connection->getIfNullSql('main_table.base_shipping_tax_refunded', '0')
                         )
                     ),
-                    'shipping_tax_refunded'  => $connection->getIfNullSql('SUM(main_table.base_shipping_tax_refunded)', '0'),
-                    'subtotal_refunded'      => $connection->getIfNullSql('SUM(main_table.base_subtotal_refunded)', '0'),
-                    'total_refunded'         => $connection->getIfNullSql('SUM(main_table.base_total_refunded)', '0')
+                    'shipping_tax_refunded'      => $connection->getIfNullSql('SUM(main_table.base_shipping_tax_refunded)', '0'),
+                    'subtotal_refunded'          => $connection->getIfNullSql('SUM(main_table.base_subtotal_refunded)', '0'),
+                    'total_refunded'             => $connection->getIfNullSql('SUM(main_table.base_total_refunded)', '0'),
 
                 ]
             );
         }
+
         return $this;
     }
 
     private function addDataToSelectItem()
     {
         $connection = $this->getResource()->getConnection();
-        $select     = $this->getSelect();
+        $select = $this->getSelect();
         $select->columns(
             [
                 'revenue'                => new Zend_Db_Expr(
@@ -908,7 +910,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                     )
                 ),
                 //'total_tax'              => $connection->getIfNullSql('SUM(sales_order_item.base_tax_amount)', '0'),
-                'total_tax'             => new Zend_Db_Expr(
+                'total_tax'              => new Zend_Db_Expr(
                     sprintf(
                         $connection->getIfNullSql('SUM(%s - %s)', 0),
                         $connection->getIfNullSql('sales_order_item.base_tax_amount', '0'),
@@ -931,7 +933,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                     )
                 ),
                 'customer_count'         => $connection->getIfNullSql('COUNT(distinct main_table.customer_id)', '0'),
-                'discount_amount'             => new Zend_Db_Expr(
+                'discount_amount'        => new Zend_Db_Expr(
                     sprintf(
                         $connection->getIfNullSql('SUM(%s - %s)', 0),
                         $connection->getIfNullSql('-sales_order_item.base_discount_amount', '0'),
@@ -945,7 +947,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
 
                 'subtotal_refunded'  => $connection->getIfNullSql('SUM(sales_order_item.base_amount_refunded)', '0'),
                 //'total_refunded'    => $connection->getIfNullSql('SUM(main_table.base_total_refunded)', '0')
-                'total_refund_items' => $connection->getIfNullSql('SUM(sales_order_item.qty_refunded)', '0')
+                'total_refund_items' => $connection->getIfNullSql('SUM(sales_order_item.qty_refunded)', '0'),
             ]
         );
 
@@ -979,7 +981,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
         $totalCostCollection->getSelect()->columns(
             [
                 'total_order_cost'     => $connection->getIfNullSql('SUM(base_cost * qty_ordered)', '0'),
-                'refunded_items_count' => $connection->getIfNullSql('SUM(qty_refunded)', '0')
+                'refunded_items_count' => $connection->getIfNullSql('SUM(qty_refunded)', '0'),
             ]
         );
         $totalCostCollection->getSelect()->group('order_id');
@@ -990,9 +992,10 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
             'items_order.order_id = main_table.entity_id',
             [
                 'total_cost'         => $connection->getIfNullSql('SUM(items_order.total_order_cost)', '0'),
-                'total_refund_items' => $connection->getIfNullSql('SUM(items_order.refunded_items_count)', '0')
+                'total_refund_items' => $connection->getIfNullSql('SUM(items_order.refunded_items_count)', '0'),
             ]
         );
+
         return $this;
     }
 
@@ -1022,9 +1025,46 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
         $this->getSelect()->columns(
             [
                 'shipping_amount'     => $connection->getIfNullSql('SUM(main_table.base_shipping_amount)', '0'),
-                'shipping_tax_amount' => $connection->getIfNullSql('SUM(main_table.base_shipping_tax_amount)', '0')
+                'shipping_tax_amount' => $connection->getIfNullSql('SUM(main_table.base_shipping_tax_amount)', '0'),
             ]
         );
+
+        return $this;
+    }
+
+    /**
+     * XRT-5959: Get distributed payment amounts
+     *
+     * @param      $dateStart
+     * @param      $dateEnd
+     * @param null $outletId
+     *
+     * @return $this
+     */
+    public function getDistributedPaymentAmounts($dateStart, $dateEnd, $outletId = null)
+    {
+        $connection = $this->getConnection();
+        $this->getSelect()->reset(Select::COLUMNS);
+        $this->getSelect()
+            ->joinLeft(
+                ['p' => $connection->getTableName('sales_order_payment')],
+                'p.parent_id = main_table.entity_id',
+                [
+                    'method_code' => 'p.method',
+                    'additional_information' => 'p.additional_information',
+                    'base_amount_paid' => $connection->getIfNullSql('p.base_amount_paid'),
+                    'base_amount_paid_online' => $connection->getIfNullSql('p.base_amount_paid_online'),
+                    'base_amount_refunded' => $connection->getIfNullSql('p.base_amount_refunded'),
+                    'base_amount_refunded_online' => $connection->getIfNullSql('p.base_amount_refunded_online'),
+                ]
+            );
+        $this->addFieldToFilter('main_table.retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
+
+        if ($outletId !== null && $outletId !== 'null') {
+            $this->addFieldToFilter('main_table.outlet_id', $outletId);
+        }
+
+        $this->reportHelper->addDateRangerFilter($this, $dateStart, $dateEnd);
 
         return $this;
     }

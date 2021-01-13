@@ -22,7 +22,8 @@ use Psr\Log\LoggerInterface;
 use SM\Report\Helper\Data;
 use Zend_Db_Expr;
 
-class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collection {
+class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collection
+{
 
     /**
      * @var \Magento\Sales\Model\ResourceModel\Order\Item\CollectionFactory
@@ -101,16 +102,16 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
     ) {
         parent::__construct($entityFactoryInterface, $logger, $fetchStrategy, $eventManager, $entitySnapshot, $connection, $resource);
         $this->orderItemCollectionFactory = $orderItemCollectionFactory;
-        $this->reportHelper           = $reportHelper;
-        $this->eavConfig              = $eavConfig;
-        $this->eavAttribute          = $eavAttribute;
-        $this->reportHelper           = $reportHelper;
-        $this->_coreResourceHelper    = $coreResourceHelper;
-        $this->scopeConfig           = $scopeConfig;
+        $this->reportHelper = $reportHelper;
+        $this->eavConfig = $eavConfig;
+        $this->eavAttribute = $eavAttribute;
+        $this->reportHelper = $reportHelper;
+        $this->_coreResourceHelper = $coreResourceHelper;
+        $this->scopeConfig = $scopeConfig;
         $this->_reportOrderCollection = $reportOrderCollection;
-        $this->_entityFactory         = $entityFactory;
-        $this->_localeDate            = $localeDate;
-        $this->_reportOrderFactory    = $reportOrderFactory;
+        $this->_entityFactory = $entityFactory;
+        $this->_localeDate = $localeDate;
+        $this->_reportOrderFactory = $reportOrderFactory;
     }
 
     /**
@@ -132,6 +133,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
      * Get range expression
      *
      * @param string $range
+     *
      * @return \Zend_Db_Expr
      */
     protected function getRangeExpression($range)
@@ -165,10 +167,11 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
     /**
      * Retrieve query for attribute with timezone conversion
      *
-     * @param string $range
-     * @param string $attribute
+     * @param string      $range
+     * @param string      $attribute
      * @param string|null $from
      * @param string|null $to
+     *
      * @return string
      */
     protected function getTZRangeOffsetExpression($range, $attribute, $from = null, $to = null)
@@ -209,17 +212,17 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
         );
 
         $this->getSelect()
-             ->columns(
-                 [
-                     'range'     => $tzRangeOffsetExpression,
-                     'item_sold' => $connection->getIfNullSql(
-                         'SUM(main_table.qty_ordered-main_table.qty_refunded)',
-                         '0'
-                     ),
-                 ]
-             )
-             ->order('range ASC')
-             ->group($tzRangeOffsetExpression);
+            ->columns(
+                [
+                    'range'     => $tzRangeOffsetExpression,
+                    'item_sold' => $connection->getIfNullSql(
+                        'SUM(main_table.qty_ordered-main_table.qty_refunded)',
+                        '0'
+                    ),
+                ]
+            )
+            ->order('range ASC')
+            ->group($tzRangeOffsetExpression);
 
         $this->addFieldToFilter('sfo.retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
         $this->addFieldToFilter('sfo.base_total_invoiced', ['neq' => 'NULL']);
@@ -243,13 +246,13 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
     public function getDateRange($range, $customStart, $customEnd, $returnObjects = false)
     {
         $array_date_start = explode('/', $customStart);
-        $array_date_end   = explode('/', $customEnd);
+        $array_date_end = explode('/', $customEnd);
 
 
         $date_start_GMT = $this->_localeDate->date($array_date_start[0], null, false);
-        $date_end_GMT   = $this->_localeDate->date($array_date_end[0], null, false);
+        $date_end_GMT = $this->_localeDate->date($array_date_end[0], null, false);
 
-        $dateEnd   = new \DateTime($array_date_end[1]);
+        $dateEnd = new \DateTime($array_date_end[1]);
         $dateStart = new \DateTime($array_date_start[1]);
 
 
@@ -280,7 +283,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                 break;
             case 'custom':
                 $dateStart = $customStart ? $customStart : $dateEnd;
-                $dateEnd   = $customEnd ? $customEnd : $dateEnd;
+                $dateEnd = $customEnd ? $customEnd : $dateEnd;
                 break;
 
             case '1y':
@@ -292,8 +295,8 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                         \Magento\Store\Model\ScopeInterface::SCOPE_STORE
                     )
                 );
-                $startMonth    = isset($startMonthDay[0]) ? (int)$startMonthDay[0] : 1;
-                $startDay      = isset($startMonthDay[1]) ? (int)$startMonthDay[1] : 1;
+                $startMonth = isset($startMonthDay[0]) ? (int)$startMonthDay[0] : 1;
+                $startDay = isset($startMonthDay[1]) ? (int)$startMonthDay[1] : 1;
                 $dateStart->setDate($dateStart->format('Y'), $startMonth, $startDay);
                 if ($range == '2y') {
                     $dateStart->modify('-1 year');
@@ -316,7 +319,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
         $this->setMainTable('sales_order_item');
 
         $this->getSelect()->reset(Select::COLUMNS);
-        $this->addFieldToFilter('main_table.product_type', ['simple','virtual', 'configurable','bundle']);
+        $this->addFieldToFilter('main_table.product_type', ['simple', 'virtual', 'configurable', 'bundle']);
         $this->addFieldToFilter('main_table.parent_item_id', ['null' => true]);
         $this->joinOrderTable();
 
@@ -366,7 +369,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                 if (!!$customer_telephone_att_id) {
                     $this->getSelect()->joinLeft(
                         ['cusvarchar' => $this->getTable('customer_entity_varchar')],
-                        'cusvarchar.entity_id = sfo.customer_id AND `cusvarchar`.`attribute_id` = ' . $customer_telephone_att_id,
+                        'cusvarchar.entity_id = sfo.customer_id AND `cusvarchar`.`attribute_id` = '.$customer_telephone_att_id,
                         ['customer_telephone' => 'cusvarchar.value']
                     );
                 }
@@ -384,14 +387,14 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                         $this->getSelect()->joinLeft(
                             ['product_varchar' => $this->getTable('catalog_product_entity_varchar')],
                             'product_varchar.entity_id = main_table.product_id AND product_varchar.store_id = 0 AND `product_varchar`.`attribute_id` = '
-                            . $product_name_id,
+                            .$product_name_id,
                             ['product_name' => 'product_varchar.value']
                         );
                     } else {
                         $this->getSelect()->joinLeft(
                             ['product_varchar' => $this->getTable('catalog_product_entity_varchar')],
                             'product_varchar.row_id = main_table.product_id AND product_varchar.store_id = 0 AND `product_varchar`.`attribute_id` = '
-                            . $product_name_id,
+                            .$product_name_id,
                             ['product_name' => 'product_varchar.value']
                         );
                     }
@@ -415,14 +418,14 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                     $this->getSelect()->joinLeft(
                         ['category_varchar' => $this->getTable('catalog_category_entity_varchar')],
                         'category_product.category_id = category_varchar.entity_id AND category_varchar.store_id = 0  AND category_varchar.attribute_id ='
-                        . $category_att_id,
+                        .$category_att_id,
                         ['category_name' => 'category_varchar.value']
                     );
                 } else {
                     $this->getSelect()->joinLeft(
                         ['category_varchar' => $this->getTable('catalog_category_entity_varchar')],
                         'category_product.category_id = category_varchar.row_id AND category_varchar.store_id = 0  AND category_varchar.attribute_id ='
-                        . $category_att_id,
+                        .$category_att_id,
                         ['category_name' => 'category_varchar.value']
                     );
                 }
@@ -431,14 +434,14 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                 break;
             case "order_item":
                 $this->getSelect()->group('item_id');
-                $this->setOrder('item_id','ASC');
+                $this->setOrder('item_id', 'ASC');
                 $this->getSelect()->joinLeft(
                     ['sm_retail_transaction' => $this->getTable('sm_retail_transaction')],
                     'sm_retail_transaction.order_id = main_table.order_id',
-                    ['payment_id' => 'sm_retail_transaction.payment_id',
-                     'payment_title' => 'sm_retail_transaction.payment_title',
-                     'payment_type' => 'sm_retail_transaction.payment_type',
-                     'payment_base_amount' => 'sm_retail_transaction.base_amount'
+                    ['payment_id'          => 'sm_retail_transaction.payment_id',
+                     'payment_title'       => 'sm_retail_transaction.payment_title',
+                     'payment_type'        => 'sm_retail_transaction.payment_type',
+                     'payment_base_amount' => 'sm_retail_transaction.base_amount',
                     ]
                 );
                 $this->getSelect()->group('sm_retail_transaction.id');
@@ -449,6 +452,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
         }
         $this->addDataToSelect($typeReport);
         $this->reportHelper->filterByColumn($this, $dataFilter, $if_filter_total_value);
+
         return $this;
     }
 
@@ -463,7 +467,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
         $totalCostCollection->getSelect()->columns(
             [
                 'total_order_cost'     => $connection->getIfNullSql('SUM(base_cost * qty_ordered)', '0'),
-                'refunded_items_count' => $connection->getIfNullSql('SUM(qty_refunded)', '0')
+                'refunded_items_count' => $connection->getIfNullSql('SUM(qty_refunded)', '0'),
             ]
         );
         $totalCostCollection->getSelect()->group('parent_item_id');
@@ -473,7 +477,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
             ['items_order' => $totalCostCollection->getSelect()],
             'items_order.parent_item_id = main_table.item_id',
             [
-                'total_cost_for_parent_item' => $connection->getIfNullSql('SUM(items_order.total_order_cost)', '0')
+                'total_cost_for_parent_item' => $connection->getIfNullSql('SUM(items_order.total_order_cost)', '0'),
             ]
         );
     }
@@ -481,20 +485,20 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
     private function addDataToSelect($typeReport)
     {
         $connection = $this->getResource()->getConnection();
-        $select     = $this->getSelect();
+        $select = $this->getSelect();
         if ($typeReport == 'order_item') {
             $select->columns(
                 [
-                    'order_id' => 'order_id',
-                    'store_id' => 'store_id',
-                    'order_item_id' => 'item_id',
-                    'product_id'             => "product_id",
-                    'product_name'             => "name",
-                    'qty_ordered'             => "qty_ordered",
-                    'base_price'  => 'base_price',
-                    'base_row_total'  => 'base_row_total',
-                    'base_discount_amount' => 'base_discount_amount',
-                    'base_total_refunded' => new Zend_Db_Expr(
+                    'order_id'                   => 'order_id',
+                    'store_id'                   => 'store_id',
+                    'order_item_id'              => 'item_id',
+                    'product_id'                 => "product_id",
+                    'product_name'               => "name",
+                    'qty_ordered'                => "qty_ordered",
+                    'base_price'                 => 'base_price',
+                    'base_row_total'             => 'base_row_total',
+                    'base_discount_amount'       => 'base_discount_amount',
+                    'base_total_refunded'        => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('SUM( - %s + %s - %s)', 0),
                             $connection->getIfNullSql('main_table.base_amount_refunded', '0'),
@@ -502,10 +506,10 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                             $connection->getIfNullSql('main_table.base_tax_refunded', '0')
                         )
                     ),
-                    'base_tax_amount' => 'base_tax_amount',
-                    'created_at' => 'created_at',
-                    'base_order_grand_total' => 'sfo.base_grand_total',
-                    'base_row_subtotal' => new Zend_Db_Expr(
+                    'base_tax_amount'            => 'base_tax_amount',
+                    'created_at'                 => 'created_at',
+                    'base_order_grand_total'     => 'sfo.base_grand_total',
+                    'base_row_subtotal'          => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('SUM(%s - %s)', 0),
                             $connection->getIfNullSql('main_table.base_row_total', '0'),
@@ -523,7 +527,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                             $connection->getIfNullSql('main_table.base_tax_refunded', '0')
                         )
                     ),
-                    'base_row_payment_amount' => new Zend_Db_Expr(
+                    'base_row_payment_amount'    => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('SUM((%s + %s - %s - %s + %s - %s) / (%s + %s + %s - %s + %s - %s) * %s)', 0),
                             $connection->getIfNullSql('main_table.base_row_total', '0'),
@@ -541,16 +545,16 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                             $connection->getIfNullSql('sm_retail_transaction.base_amount', '0')
                         )
                     ),
-                    'user_id' => 'sfo.user_id',
-                    'sm_seller_ids' => 'sfo.sm_seller_ids',
-                    'sm_seller_username' => 'sfo.sm_seller_username',
-                    'retail_note' => 'sfo.retail_note'
+                    'user_id'                    => 'sfo.user_id',
+                    'sm_seller_ids'              => 'sfo.sm_seller_ids',
+                    'sm_seller_username'         => 'sfo.sm_seller_username',
+                    'retail_note'                => 'sfo.retail_note',
                 ]
             );
         } else {
             $select->columns(
                 [
-                    'revenue'         => new Zend_Db_Expr(
+                    'revenue'                    => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('SUM(%s - %s -(%s - %s))', 0),
                             $connection->getIfNullSql('main_table.base_row_total', '0'),
@@ -559,7 +563,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                             $connection->getIfNullSql('main_table.base_discount_refunded', '0')
                         )
                     ),
-                    'total_for_discount_percent'         => new Zend_Db_Expr(
+                    'total_for_discount_percent' => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('SUM(%s - %s -(%s - %s))', 0),
                             $connection->getIfNullSql('main_table.base_row_total', '0'),
@@ -568,7 +572,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                             $connection->getIfNullSql('main_table.base_discount_refunded', '0')
                         )
                     ),
-                    'base_row_total_product' => new Zend_Db_Expr(
+                    'base_row_total_product'     => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('SUM(%s + %s- %s)', 0),
                             $connection->getIfNullSql('main_table.base_row_total', '0'),
@@ -576,7 +580,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                             $connection->getIfNullSql('main_table.base_discount_invoiced', '0')
                         )
                     ),
-                    'grand_total' => new Zend_Db_Expr(
+                    'grand_total'                => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('SUM(%s + %s- %s - (%s + %s - %s))', 0),
                             $connection->getIfNullSql('main_table.base_row_total', '0'),
@@ -588,14 +592,14 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                         )
                     ),
                     //'total_tax'       => $connection->getIfNullSql('SUM(main_table.base_tax_amount)', '0'),
-                    'total_tax'             => new Zend_Db_Expr(
+                    'total_tax'                  => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('SUM(%s - %s)', 0),
                             $connection->getIfNullSql('main_table.base_tax_amount', '0'),
                             $connection->getIfNullSql('main_table.base_tax_refunded', '0')
                         )
                     ),
-                    'total_cost'      => new Zend_Db_Expr(
+                    'total_cost'                 => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('SUM(%s * %s)', 0),
                             $connection->getIfNullSql('main_table.qty_ordered', '0'),
@@ -603,43 +607,44 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                         )
                     ),
                     //'total_cost' => $connection->getIfNullSql('SUM(main_table.qty_ordered) * SUM(main_table.base_cost)',0),
-                    'total_cart_size' => $connection->getIfNullSql('SUM(main_table.qty_ordered)', '0'),
-                    'cart_size'       => new Zend_Db_Expr(
+                    'total_cart_size'            => $connection->getIfNullSql('SUM(main_table.qty_ordered)', '0'),
+                    'cart_size'                  => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('%s / %s', 0),
                             $connection->getIfNullSql('SUM(main_table.qty_ordered)', '0'),
                             'COUNT(distinct main_table.order_id)'
                         )
                     ),
-                    'customer_count'  => $connection->getIfNullSql('COUNT(distinct sfo.customer_id)', '0'),
+                    'customer_count'             => $connection->getIfNullSql('COUNT(distinct sfo.customer_id)', '0'),
                     //'discount_amount' => $connection->getIfNullSql('SUM(main_table.base_discount_amount)', '0'),
-                    'discount_amount' => new Zend_Db_Expr(
+                    'discount_amount'            => new Zend_Db_Expr(
                         sprintf(
                             $connection->getIfNullSql('%s - %s', 0),
                             $connection->getIfNullSql('SUM(main_table.base_discount_amount)', '0'),
                             $connection->getIfNullSql('SUM(main_table.base_discount_refunded)', '0')
                         )
                     ),
-                    'first_sale'      => "MIN(main_table.created_at)",
-                    'item_sold'       => $connection->getIfNullSql('SUM(main_table.qty_ordered-main_table.qty_refunded)', '0'),
-                    'last_sale'       => "MAX(main_table.created_at)",
-                    'order_count'     => 'COUNT(distinct main_table.order_id)',
-                    'subtotal_refunded' => $connection->getIfNullSql('SUM(main_table.base_amount_refunded)', '0'),
+                    'first_sale'                 => "MIN(main_table.created_at)",
+                    'item_sold'                  => $connection->getIfNullSql('SUM(main_table.qty_ordered-main_table.qty_refunded)', '0'),
+                    'last_sale'                  => "MAX(main_table.created_at)",
+                    'order_count'                => 'COUNT(distinct main_table.order_id)',
+                    'subtotal_refunded'          => $connection->getIfNullSql('SUM(main_table.base_amount_refunded)', '0'),
                     //'total_refunded'    => $connection->getIfNullSql('SUM(main_table.base_total_refunded)', '0')
-                    'total_refund_items' => $connection->getIfNullSql('SUM(main_table.qty_refunded)', '0')
+                    'total_refund_items'         => $connection->getIfNullSql('SUM(main_table.qty_refunded)', '0'),
                 ]
             );
         }
+
         return $this;
     }
 
     protected function joinOrderTable()
     {
-        $select     = $this->getSelect();
+        $select = $this->getSelect();
         $select->joinLeft(
             ['sfo' => $this->getTable('sales_order')],
             'sfo.entity_id = main_table.order_id',
-            [ 'sfo.retail_status', 'sfo.customer_email','sfo.customer_id' , 'sfo.register_id', 'sfo.base_total_invoiced']
+            ['sfo.retail_status', 'sfo.customer_email', 'sfo.customer_id', 'sfo.register_id', 'sfo.base_total_invoiced']
         );
 
         return $this;
@@ -653,19 +658,19 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
     {
         // get manufacture id
         $manufacturer_att_id = $this->eavConfig->getAttribute('catalog_product', 'manufacturer')
-                                               ->getData('attribute_id');
-        $select              = $this->getSelect();
+            ->getData('attribute_id');
+        $select = $this->getSelect();
         // if magento CE must use product_int.entity_id instead of product_int.row_id
         if ($this->reportHelper->isCommunityMagentoEdition()) {
             $select->joinLeft(
                 ['product_int' => $this->getTable('catalog_product_entity_int')],
-                'product_int.entity_id = main_table.product_id and product_int.store_id = 0 and product_int.attribute_id = ' . $manufacturer_att_id,
+                'product_int.entity_id = main_table.product_id and product_int.store_id = 0 and product_int.attribute_id = '.$manufacturer_att_id,
                 ['manufacturer_key' => 'product_int.value']
             );
         } else {
             $select->joinLeft(
                 ['product_int' => $this->getTable('catalog_product_entity_int')],
-                'product_int.row_id = main_table.product_id and product_int.store_id = 0 and product_int.attribute_id = ' . $manufacturer_att_id,
+                'product_int.row_id = main_table.product_id and product_int.store_id = 0 and product_int.attribute_id = '.$manufacturer_att_id,
                 ['manufacturer_key' => 'product_int.value']
             );
         }
@@ -675,6 +680,51 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
             'product_int.value = eav_option.option_id and product_int.store_id = eav_option.store_id',
             ['manufacturer_value' => 'eav_option.value']
         );
+
+        return $this;
+    }
+
+    /**
+     * XRT-5959: Calculate total distributed tax amount
+     *
+     * @param string $dateStart
+     * @param string $dateEnd
+     * @param string $sku
+     * @param null   $outletId
+     *
+     * @return $this
+     */
+    public function getDistributedTaxPercentAmount($dateStart, $dateEnd, $sku = '', $outletId = null)
+    {
+        $this->getSelect()->reset(Select::COLUMNS);
+        $this->getSelect()
+            ->columns(
+                [
+                    'tax_percent'  => new \Zend_Db_Expr("IFNULL(main_table.tax_percent, ROUND((main_table.tax_amount / main_table.row_total) * 100))"),
+                    'total_amount' => new \Zend_Db_Expr("SUM(main_table.tax_amount)"),
+                ]
+            )
+            ->group('main_table.tax_percent')
+            ->having('total_amount > 0');
+
+        if (!empty($sku)) {
+            $this->addFieldToFilter('sku', $sku);
+        }
+
+        if ($outletId !== null && $outletId !== 'null') {
+            $connection = $this->getConnection();
+            $this->getSelect()
+                ->joinLeft(
+                    ['so' => $connection->getTableName('sales_order')],
+                    'so.entity_id = main_table.order_id',
+                    [
+                        'outlet_id'
+                    ]
+                );
+            $this->addFieldToFilter('so.outlet_id', $outletId);
+        }
+
+        $this->reportHelper->addDateRangerFilter($this, $dateStart, $dateEnd);
 
         return $this;
     }
