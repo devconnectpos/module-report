@@ -419,8 +419,8 @@ class SalesManagement extends ServiceAbstract
                                 $xItem->setData('return_count', $item->getData('total_refund_items'));
 
                                 // XRT-5959: Tax and payment distribution amounts
-                                $xItem->setData('distributed_tax_percent_amounts', $this->getDistributedTaxPercentAmounts($dateStart, $dateEnd, $data['outlet_id']));
-                                $xItem->setData('distributed_payment_amounts', $this->getDistributedPaymentAmounts($dateStart, $dateEnd, $data['outlet_id']));
+                                $xItem->setData('distributed_tax_percent_amounts', $this->getDistributedTaxPercentAmounts($dateStartGMT, $dateEndGMT, $data['outlet_id']));
+                                $xItem->setData('distributed_payment_amounts', $this->getDistributedPaymentAmounts($dateStartGMT, $dateEndGMT, $xItem->getData('grand_total'), $data['outlet_id']));
 
                                 $xGroup['value'][] = $xItem->getData();
                             }
@@ -654,11 +654,12 @@ class SalesManagement extends ServiceAbstract
      *
      * @param      $dateStart
      * @param      $dateEnd
+     * @param      $grandTotal
      * @param null $outletId
      *
      * @return array
      */
-    protected function getDistributedPaymentAmounts($dateStart, $dateEnd, $outletId = null)
+    protected function getDistributedPaymentAmounts($dateStart, $dateEnd, $grandTotal, $outletId = null)
     {
         $data = $this->salesReportOrderCollectionFactory->create()
             ->getDistributedPaymentAmounts($dateStart, $dateEnd, $outletId)
@@ -674,6 +675,8 @@ class SalesManagement extends ServiceAbstract
             }
 
             $additionalInformation = json_decode($d['additional_information'], true);
+            $baseTotalInvoiced = floatval($d['base_total_invoiced']);
+            $baseTotalRefunded = floatval($d['base_total_refunded']);
 
             if ($method !== 'retailmultiple') {
                 if (!isset($results[$method])) {
@@ -683,11 +686,7 @@ class SalesManagement extends ServiceAbstract
                     ];
                 }
 
-                $baseAmountPaid = floatval($d['base_amount_paid']);
-                $baseAmountPaidOnline = floatval($d['base_amount_paid_online']);
-                $baseAmountRefunded = floatval($d['base_amount_refunded']);
-                $baseAmountRefundedOnline = floatval($d['base_amount_refunded_online']);
-                $results[$method]['amount'] += ($baseAmountPaid + $baseAmountPaidOnline) - ($baseAmountRefunded + $baseAmountRefundedOnline);
+                $results[$method]['amount'] += $baseTotalInvoiced - $baseTotalRefunded;
             } else {
                 $splitData = json_decode($additionalInformation['split_data'], true);
                 $notAllowedTypes = [
@@ -717,7 +716,9 @@ class SalesManagement extends ServiceAbstract
                         ];
                     }
 
-                    $results[$method]['amount'] += $amount;
+                    if ($baseTotalInvoiced > 0) {
+                        $results[$method]['amount'] += $amount;
+                    }
                 }
             }
         }

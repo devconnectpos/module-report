@@ -867,7 +867,6 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                     'shipping_tax_refunded'      => $connection->getIfNullSql('SUM(main_table.base_shipping_tax_refunded)', '0'),
                     'subtotal_refunded'          => $connection->getIfNullSql('SUM(main_table.base_subtotal_refunded)', '0'),
                     'total_refunded'             => $connection->getIfNullSql('SUM(main_table.base_total_refunded)', '0'),
-
                 ]
             );
         }
@@ -1052,19 +1051,19 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                 [
                     'method_code' => 'p.method',
                     'additional_information' => 'p.additional_information',
-                    'base_amount_paid' => $connection->getIfNullSql('p.base_amount_paid'),
-                    'base_amount_paid_online' => $connection->getIfNullSql('p.base_amount_paid_online'),
-                    'base_amount_refunded' => $connection->getIfNullSql('p.base_amount_refunded'),
-                    'base_amount_refunded_online' => $connection->getIfNullSql('p.base_amount_refunded_online'),
+                    'base_total_invoiced' => $connection->getIfNullSql('main_table.base_total_invoiced'),
+                    'base_total_refunded' => $connection->getIfNullSql('main_table.base_total_refunded'),
                 ]
             );
         $this->addFieldToFilter('main_table.retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
+        $this->addFieldToFilter('main_table.base_total_invoiced', ['neq' => 'NULL']);
 
         if ($outletId !== null && $outletId !== 'null') {
             $this->addFieldToFilter('main_table.outlet_id', $outletId);
         }
 
-        $this->reportHelper->addDateRangerFilter($this, $dateStart, $dateEnd);
+        $dateRange = $this->reportHelper->getReportOrderResource()->getDateRange('custom', $dateStart, $dateEnd);
+        $this->addFieldToFilter('main_table.created_at', $dateRange);
 
         return $this;
     }
