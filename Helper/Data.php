@@ -108,11 +108,13 @@ class Data
         $date_end               = $this->timezoneInterface->date($array_date_end[1], null, false);
 
         if ($is_getGroupData) {
+            // XRT-6165: Need to add 1 hour here as client's data miss 1 hour
             return [
-                    'date_start'             => $date_start->format('Y-m-d H:i:s'),
-                    'date_end'               => $date_end->format('Y-m-d H:i:s'),
+                    'date_start'     => $date_start->format('Y-m-d H:i:s'),
+                    'date_end'       => $date_end->modify('+1 hour')->format('Y-m-d H:i:s'),
                     'date_start_GMT' => $date_start_GMT->format('Y-m-d H:i:s'),
-                    'date_end_GMT'   => $date_end_GMT->format('Y-m-d H:i:s')];
+                    'date_end_GMT'   => $date_end_GMT->modify('+1 hour')->format('Y-m-d H:i:s')
+            ];
         }
         if ($is_date_compare && is_array($period_data)) {
             $period_type = $period_data['range_type'];

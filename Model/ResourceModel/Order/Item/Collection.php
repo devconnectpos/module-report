@@ -696,35 +696,47 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
      */
     public function getDistributedTaxPercentAmount($dateStart, $dateEnd, $sku = '', $outletId = null)
     {
+        $connection = $this->getConnection();
         $this->getSelect()->reset(Select::COLUMNS);
         $this->getSelect()
             ->columns(
                 [
-                    'tax_percent'  => new \Zend_Db_Expr("IFNULL(main_table.tax_percent, ROUND((main_table.tax_amount / main_table.row_total) * 100))"),
-                    'total_amount' => new \Zend_Db_Expr("SUM(main_table.tax_amount)"),
+                    'tax_percent'  => 'main_table.tax_percent',
+                    'total_amount' => new \Zend_Db_Expr(
+                        sprintf(
+                            $connection->getIfNullSql('SUM(%s - %s)', 0),
+                            $connection->getIfNullSql('main_table.base_tax_amount', '0'),
+                            $connection->getIfNullSql('main_table.base_tax_refunded', '0')
+                        )
+                    ),
                 ]
             )
             ->group('main_table.tax_percent')
-            ->having('total_amount > 0');
+            ->having('total_amount > 0')
+            ->having('tax_percent is not null');
+
+        $this->getSelect()
+            ->joinLeft(
+                ['so' => $connection->getTableName('sales_order')],
+                'so.entity_id = main_table.order_id',
+                [
+                    'outlet_id'
+                ]
+            );
 
         if (!empty($sku)) {
             $this->addFieldToFilter('sku', $sku);
         }
 
         if ($outletId !== null && $outletId !== 'null') {
-            $connection = $this->getConnection();
-            $this->getSelect()
-                ->joinLeft(
-                    ['so' => $connection->getTableName('sales_order')],
-                    'so.entity_id = main_table.order_id',
-                    [
-                        'outlet_id'
-                    ]
-                );
             $this->addFieldToFilter('so.outlet_id', $outletId);
         }
 
-        $this->reportHelper->addDateRangerFilter($this, $dateStart, $dateEnd);
+        $this->addFieldToFilter('so.retail_status', [['nin' => [11, 12, 13]], ['null' => true]]);
+        $this->addFieldToFilter('so.base_total_invoiced', ['neq' => 'NULL']);
+
+        $dateRange = $this->reportHelper->getReportOrderResource()->getDateRange('custom', $dateStart, $dateEnd);
+        $this->addFieldToFilter('main_table.created_at', $dateRange);
 
         return $this;
     }
