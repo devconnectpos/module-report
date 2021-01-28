@@ -717,7 +717,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
 
         $this->getSelect()
             ->joinLeft(
-                ['so' => $connection->getTableName('sales_order')],
+                ['so' => $this->getTable('sales_order')],
                 'so.entity_id = main_table.order_id',
                 [
                     'outlet_id'

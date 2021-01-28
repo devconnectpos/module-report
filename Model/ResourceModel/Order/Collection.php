@@ -178,7 +178,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
      */
     protected function prepareSummaryReport($range, $customStart, $customEnd, $isFilter)
     {
-        $this->setMainTable('sales_order');
+        $this->setMainTable($this->getTable('sales_order'));
         $connection = $this->getConnection();
 
         /**
@@ -442,7 +442,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
         $dataFilter = $data['filter'];
 
 
-        $this->setMainTable('sales_order');
+        $this->setMainTable($this->getTable('sales_order'));
         $this->getSelect()->reset(Select::COLUMNS);
         if ($itemDetail != null && $typeReport == 'outlet' || $extra_info != null || $typeReport == 'monetary') {
         } else {
@@ -1003,7 +1003,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
         $typeReport = $data['type'];
         $itemFilter = $data->getData('item_filter');
 
-        $this->setMainTable('sales_order');
+        $this->setMainTable($this->getTable('sales_order'));
         $connection = $this->getResource()->getConnection();
         $this->getSelect()->reset(Select::COLUMNS);
 
@@ -1046,7 +1046,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
         $this->getSelect()->reset(Select::COLUMNS);
         $this->getSelect()
             ->joinLeft(
-                ['p' => $connection->getTableName('sales_order_payment')],
+                ['p' => $this->getTable('sales_order_payment')],
                 'p.parent_id = main_table.entity_id',
                 [
                     'method_code' => 'p.method',
