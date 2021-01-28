@@ -756,7 +756,7 @@ class SalesManagement extends ServiceAbstract
         $collection->getSelect()->group('payment_id');
 
         $collection->getSelect()->joinLeft(
-            ['sorder' => 'sales_order'],
+            ['sorder' => $collection->getTable('sales_order')],
             'sorder.entity_id = main_table.order_id',
             ['order_id' => 'sorder.entity_id']
         );
