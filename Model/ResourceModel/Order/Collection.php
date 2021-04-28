@@ -28,7 +28,6 @@ use Magento\Store\Model\StoreManagerInterface;
 use Psr\Log\LoggerInterface;
 use SM\Report\Helper\Data;
 use SM\Shift\Model\ResourceModel\RetailTransaction\CollectionFactory as TransactionCollectionFactory;
-use SM\Shift\Model\RetailTransactionFactory;
 use Zend_Db_Expr;
 
 class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
@@ -355,13 +354,11 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
         $array_date_start = explode('/', $customStart);
         $array_date_end = explode('/', $customEnd);
 
-
         $date_start_GMT = $this->_localeDate->date($array_date_start[0], null, false);
         $date_end_GMT = $this->_localeDate->date($array_date_end[0], null, false);
 
         $dateEnd = new \DateTime($array_date_end[1]);
         $dateStart = new \DateTime($array_date_start[1]);
-
 
         // go to the end of a day
         $dateEnd->setTime(23, 59, 59);
@@ -441,7 +438,6 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
         $typeReport = $data['type'];
         $dataFilter = $data['filter'];
 
-
         $this->setMainTable($this->getTable('sales_order'));
         $this->getSelect()->reset(Select::COLUMNS);
         if ($itemDetail != null && $typeReport == 'outlet' || $extra_info != null || $typeReport == 'monetary') {
@@ -494,7 +490,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                 $this->getSelect()->joinLeft(
                     ['category_varchar' => $this->getTable('catalog_category_entity_varchar')],
                     'category_product.category_id = category_varchar.row_id AND category_varchar.store_id = 0  AND category_varchar.attribute_id ='
-                    .$category_att_id,
+                    . $category_att_id,
                     ['category_name' => 'category_varchar.value']
                 );
                 if ($extra_info == 'region') {
@@ -554,7 +550,7 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                     $this->getSelect()->joinLeft(
                         ['category_varchar' => $this->getTable('catalog_category_entity_varchar')],
                         'category_product.category_id = category_varchar.row_id AND category_varchar.store_id = 0  AND category_varchar.attribute_id ='
-                        .$category_att_id,
+                        . $category_att_id,
                         ['category_name' => 'category_varchar.value']
                     );
                     $this->getSelect()->joinLeft(
@@ -630,9 +626,9 @@ class Collection extends \Magento\Reports\Model\ResourceModel\Order\Collection
                 );
                 $customer_telephone_att_id = $this->eavAttribute->getIdByCode('customer', 'retail_telephone');
                 if (!!$customer_telephone_att_id) {
-                    $this->getSelect()->joinLeft(
+                    $this->getSelect()->joinInner(
                         ['cusvarchar' => $this->getTable('customer_entity_varchar')],
-                        'cusvarchar.entity_id = main_table.customer_id AND `cusvarchar`.`attribute_id` = '.$customer_telephone_att_id,
+                        'cusvarchar.entity_id = main_table.customer_id AND `cusvarchar`.`attribute_id` = ' . $customer_telephone_att_id,
                         ['customer_telephone' => 'cusvarchar.value']
                     );
                 }
