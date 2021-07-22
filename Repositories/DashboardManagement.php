@@ -204,6 +204,7 @@ class DashboardManagement extends ServiceAbstract
 
         $listScopeChart['top_User'] =  $this->getTopUser($dateStart, $dateEnd);
         $listScopeChart['product_sold'] = $this->getProductSoldData($dateStart, $dateEnd);
+        $listScopeChart['product_sold_on_pos'] = $this->getProductSoldData($dateStart, $dateEnd, true);
 
         //get item sold range for product sold
         foreach ($this->getListProductCurrent($listScopeChart['product_sold']) as $sku) {
@@ -340,7 +341,7 @@ class DashboardManagement extends ServiceAbstract
         }
     }
 
-    public function getProductSoldData($dateStart, $dateEnd)
+    public function getProductSoldData($dateStart, $dateEnd, $onlyFromPos = false)
     {
         $dateRanger = $this->reportHelper->getDateRanger(false, null, $dateStart, $dateEnd, true);
         $dateStart = $dateRanger['date_start_GMT'];
@@ -350,7 +351,7 @@ class DashboardManagement extends ServiceAbstract
         $data['type'] = 'product';
         $data['filter'] = [];
         $collection = $this->getSalesReportByOrderItem()
-                           ->getSalesReportFromOrderItemCollection($data, $dateStart, $dateEnd, null, false);
+                           ->getSalesReportFromOrderItemCollection($data, $dateStart, $dateEnd, null, false, $onlyFromPos);
         $collection->getSelect()->order('revenue DESC');
         $collection->getSelect()->limit(10);
         $xGroup = [];

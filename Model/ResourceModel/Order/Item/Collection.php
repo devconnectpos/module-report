@@ -310,7 +310,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
         }
     }
 
-    public function getSalesReportFromOrderItemCollection($data, $dateStart, $dateEnd, $itemDetail, $if_filter_total_value = false)
+    public function getSalesReportFromOrderItemCollection($data, $dateStart, $dateEnd, $itemDetail, $ifFilterTotalValue = false, $onlyFromPos = false)
     {
         // transaction count : là đếm số lần order thực hiện 1 payment ( vd :
         $typeReport = $data['type'];
@@ -322,6 +322,11 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
         $this->addFieldToFilter('main_table.product_type', ['simple', 'virtual', 'configurable', 'bundle']);
         $this->addFieldToFilter('main_table.parent_item_id', ['null' => true]);
         $this->joinOrderTable();
+
+        if ($onlyFromPos) {
+            $this->addFieldToFilter('sfo.retail_id', ['notnull' => true])
+                ->addFieldToFilter('sfo.retail_id', ['neq' => '']);
+        }
 
         // doi voi nhung product co kieu configuable hoac bundle :
         // cost duoc tinh theo san pham simple di cung no nen phai tinh rieng cost cho nhung product nay
@@ -451,7 +456,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
                 break;
         }
         $this->addDataToSelect($typeReport);
-        $this->reportHelper->filterByColumn($this, $dataFilter, $if_filter_total_value);
+        $this->reportHelper->filterByColumn($this, $dataFilter, $ifFilterTotalValue);
 
         return $this;
     }
@@ -644,7 +649,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
         $select->joinLeft(
             ['sfo' => $this->getTable('sales_order')],
             'sfo.entity_id = main_table.order_id',
-            ['sfo.retail_status', 'sfo.customer_email', 'sfo.customer_id', 'sfo.register_id', 'sfo.base_total_invoiced']
+            ['sfo.retail_status', 'sfo.retail_id', 'sfo.customer_email', 'sfo.customer_id', 'sfo.register_id', 'sfo.base_total_invoiced']
         );
 
         return $this;
