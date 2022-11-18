@@ -96,8 +96,8 @@ class Data
      */
     public function getDateRanger($is_date_compare, $period_data, $total_start_date, $total_end_date , $is_getGroupData = false)
     {
-        $array_date_start = explode('/', $total_start_date);
-        $array_date_end   = explode('/', $total_end_date);
+        $array_date_start = explode('/', (string)$total_start_date);
+        $array_date_end   = explode('/', (string)$total_end_date);
 
         // convert date start , date end theo gio cua local sang GMT de lam cau query select
         // ( vi magento collection su dung mui gio GMT de get data)
@@ -121,7 +121,7 @@ class Data
             $type        = $period_data['type'];
             $count       = $period_data['count'];
 
-            $listTypeDate = explode(",", self::GROUP_TYPE_DATE);
+            $listTypeDate = explode(",", (string)self::GROUP_TYPE_DATE);
             $datas        = [];
             if (in_array($type, $listTypeDate)) {
                 $start_date             = clone $date_start;
@@ -304,7 +304,7 @@ class Data
                     $searchColumnName = $dataFilter['name'];
                     $searchValue      = $dataFilter['search_value'];
 
-                    $listFilterDataCanCompare = explode(",", self::FILTER_DATA_CAN_COMPARE);
+                    $listFilterDataCanCompare = explode(",", (string)self::FILTER_DATA_CAN_COMPARE);
                     // khi search những column có thể compare
                     if (in_array($searchColumnName, $listFilterDataCanCompare)) {
                         if (!is_array($searchValue)) {
