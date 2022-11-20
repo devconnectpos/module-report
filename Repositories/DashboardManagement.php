@@ -248,8 +248,8 @@ class DashboardManagement extends ServiceAbstract
             "item_filter" => null,
             "filter"      => []
         ];
-        $array_date_start  = explode('/', $dateStart);
-        $array_date_end    = explode('/', $dateEnd);
+        $array_date_start  = explode('/', (string)$dateStart);
+        $array_date_end    = explode('/', (string)$dateEnd);
         $date_start_GMT    = $this->timezoneInterface->date($array_date_start[0], null, false);
         $date_end_GMT      = $this->timezoneInterface->date($array_date_end[0], null, false);
         $topUserCollection = $this->getReportByOrder()
@@ -372,7 +372,7 @@ class DashboardManagement extends ServiceAbstract
         if ($productModel) {
             $product_name = $productModel->getData('name');
         } else {
-            $arrayName = explode(",", $item->getData('all_product_name'));
+            $arrayName = explode(",", (string)$item->getData('all_product_name'));
             if (is_array($arrayName) && end($arrayName)) {
                 $product_name  = end($arrayName);
             }

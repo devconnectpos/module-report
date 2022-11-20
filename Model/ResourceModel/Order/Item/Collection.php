@@ -245,8 +245,8 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
      */
     public function getDateRange($range, $customStart, $customEnd, $returnObjects = false)
     {
-        $array_date_start = explode('/', $customStart);
-        $array_date_end = explode('/', $customEnd);
+        $array_date_start = explode('/', (string)$customStart);
+        $array_date_end = explode('/', (string)$customEnd);
 
 
         $date_start_GMT = $this->_localeDate->date($array_date_start[0], null, false);
@@ -290,7 +290,7 @@ class Collection extends \Magento\Sales\Model\ResourceModel\Order\Item\Collectio
             case '2y':
                 $startMonthDay = explode(
                     ',',
-                    $this->scopeConfig->getValue(
+                    (string)$this->scopeConfig->getValue(
                         'reports/dashboard/ytd_start',
                         \Magento\Store\Model\ScopeInterface::SCOPE_STORE
                     )
