@@ -283,7 +283,7 @@ class Chart extends Graph
                             if (!isset($options[$attr][$dateStart])) {
                                 if ($attr == "customer_count") {
                                     $options['list_customer'][$dateStart] = $item->getData('list_customer');
-                                    $listCustomer = explode(",", $options['list_customer'][$dateStart]);
+                                    $listCustomer = explode(",", (string)$options['list_customer'][$dateStart]);
                                     $options[$attr][$dateStart] = count($listCustomer);
                                 } else {
                                     $options[$attr][$dateStart] = $item->getData($attr);
@@ -291,7 +291,7 @@ class Chart extends Graph
                             } else {
                                 if ($attr == "customer_count") {
                                     $options['list_customer'][$dateStart] = $options['list_customer'][$dateStart] . "," . $item->getData('list_customer');
-                                    $listCustomer                         = array_unique(explode(",", $options['list_customer'][$dateStart]));
+                                    $listCustomer                         = array_unique(explode(",", (string)$options['list_customer'][$dateStart]));
                                     $options[$attr][$dateStart]           = count($listCustomer);
                                 } else {
                                     $options[$attr][$dateStart] = doubleval($options[$attr][$dateStart]) + doubleval($item->getData($attr));

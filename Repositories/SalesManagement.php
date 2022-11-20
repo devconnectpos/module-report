@@ -15,6 +15,7 @@ use Magento\Payment\Helper\Data;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\User\Model\UserFactory;
 use SM\Core\Api\Data\SalesReportItem;
+use SM\Payment\Helper\Data as PaymentDataHelper;
 use SM\Payment\Model\RetailPayment;
 use SM\Payment\Model\RetailPaymentRepository;
 use SM\Report\Model\ResourceModel\Order\CollectionFactory;
@@ -22,6 +23,7 @@ use SM\Report\Model\ResourceModel\Order\Item\CollectionFactory as SaleReportOrde
 use SM\Shift\Model\ResourceModel\RetailTransaction\CollectionFactory as TransactionCollectionFactory;
 use SM\XRetail\Helper\DataConfig;
 use SM\XRetail\Repositories\Contract\ServiceAbstract;
+use SM\Payment\Model\RetailPaymentInterfaceFactory;
 
 class SalesManagement extends ServiceAbstract
 {
@@ -92,7 +94,17 @@ class SalesManagement extends ServiceAbstract
      * @var \Magento\Customer\Api\AddressRepositoryInterface
      */
     protected $addressRepository;
-    
+
+    /**
+     * @var PaymentDataHelper
+     */
+    protected $paymentDataHelper;
+
+    /**
+     * @var RetailPaymentInterfaceFactory
+     */
+    private $retailPayment;
+
     /**
      * SalesManagement constructor.
      *
@@ -115,24 +127,27 @@ class SalesManagement extends ServiceAbstract
      * @param \SM\Core\Api\Data\SalesReportItemFactory $salesReportItemFactory
      */
     public function __construct(
-        RequestInterface $requestInterface,
-        DataConfig $dataConfig,
-        StoreManagerInterface $storeManager,
-        ListsInterface $localeLists,
-        CollectionFactory $salesReportOrderCollectionFactory,
-        SaleReportOrderItemCollectionFactory $salesReportOrderItemCollectionFactory,
-        CustomerRepositoryInterface $customerRepositoryInterface,
-        CategoryRepositoryInterface $categoryRepositoryInterface,
-        Data $paymentHelper,
-        \SM\Report\Helper\Data $reportHelper,
-        RetailPaymentRepository $retailPaymentRepository,
-        UserFactory $userFactory,
-        ProductFactory $productFactory,
-        CategoryFactory $categoryFactory,
-        TransactionCollectionFactory $transactionCollectionFactory,
-        AddressRepositoryInterface $addressRepository,
-        \SM\Core\Api\Data\SalesReportItemFactory $salesReportItemFactory
-    ) {
+        RequestInterface                         $requestInterface,
+        DataConfig                               $dataConfig,
+        StoreManagerInterface                    $storeManager,
+        ListsInterface                           $localeLists,
+        CollectionFactory                        $salesReportOrderCollectionFactory,
+        SaleReportOrderItemCollectionFactory     $salesReportOrderItemCollectionFactory,
+        CustomerRepositoryInterface              $customerRepositoryInterface,
+        CategoryRepositoryInterface              $categoryRepositoryInterface,
+        Data                                     $paymentHelper,
+        \SM\Report\Helper\Data                   $reportHelper,
+        RetailPaymentRepository                  $retailPaymentRepository,
+        UserFactory                              $userFactory,
+        ProductFactory                           $productFactory,
+        CategoryFactory                          $categoryFactory,
+        TransactionCollectionFactory             $transactionCollectionFactory,
+        AddressRepositoryInterface               $addressRepository,
+        \SM\Core\Api\Data\SalesReportItemFactory $salesReportItemFactory,
+        PaymentDataHelper                        $paymentDataHelper,
+        RetailPaymentInterfaceFactory $retailPayment
+    )
+    {
         $this->transactionCollectionFactory = $transactionCollectionFactory;
         $this->retailPaymentRepository = $retailPaymentRepository;
         $this->salesReportOrderItemCollectionFactory = $salesReportOrderItemCollectionFactory;
@@ -146,8 +161,11 @@ class SalesManagement extends ServiceAbstract
         $this->categoryFactory = $categoryFactory;
         $this->localeLists = $localeLists;
         $this->addressRepository = $addressRepository;
-        parent::__construct($requestInterface, $dataConfig, $storeManager);
+        $this->paymentDataHelper = $paymentDataHelper;
+        $this->retailPayment = $retailPayment;
         $this->salesReportItemFactory = $salesReportItemFactory;
+
+        parent::__construct($requestInterface, $dataConfig, $storeManager);
     }
 
     /**
@@ -170,7 +188,7 @@ class SalesManagement extends ServiceAbstract
         if (!$reportType || !$date_start || !$date_end || !$period_data) {
             throw  new Exception("Please define the require data");
         }
-        $listGroupByItem = explode(",", self::GROUP_BY_ITEM);
+        $listGroupByItem = explode(",", (string)self::GROUP_BY_ITEM);
 
         $dateRanger = $this->reportHelper->getDateRanger($is_date_compare, $period_data, $date_start, $date_end, false);
         $dateRangerForGroupData = $this->reportHelper->getDateRanger(
@@ -223,7 +241,7 @@ class SalesManagement extends ServiceAbstract
             ->setDateRangerReport(
                 [
                     "date_start" => $dateRangerForGroupData['date_start'],
-                    "date_end"   => $dateRangerForGroupData['date_end'],
+                    "date_end" => $dateRangerForGroupData['date_end'],
                 ]
             )
             ->getOutputReport($item_detail);
@@ -304,7 +322,19 @@ class SalesManagement extends ServiceAbstract
                     if ($reportType == "payment_method") {
                         foreach ($collection as $item) {
                             if ($data['item_filter']) {
-                                $paymentMethod = $this->retailPaymentRepository->getById($item->getData('payment_id'));
+                                try {
+                                    $paymentMethod = $this->retailPaymentRepository->getById($item->getData('payment_id'));
+                                } catch (\Exception $e) {
+                                    $defaultPaymentMethod = $this->paymentDataHelper->getPaymentDataArray(0);
+                                    $paymentMethod = $this->retailPayment->create();
+                                    $paymentData = $defaultPaymentMethod[$item->getData('payment_id')] ?? [
+                                        'type' => 'other',
+                                        'title' => 'Other',
+                                        'is_active' => 1,
+                                        'is_dummy' => 1,
+                                    ];
+                                    $paymentMethod->addData($paymentData);
+                                }
                                 $dataReportType = $item->getData('payment_id');
                                 $dataReportValue = $paymentMethod->getData('title');
                             } else {
@@ -313,10 +343,10 @@ class SalesManagement extends ServiceAbstract
                                 $dataReportValue = isset($listPayment[$dataReportType]) ? $this->paymentHelper->getMethodInstance($dataReportType)->getTitle() . " ($dataReportType)" : $dataReportType;
                             }
                             $xItem = [
-                                'data_report_type'  => $dataReportType,
+                                'data_report_type' => $dataReportType,
                                 'data_report_value' => $dataReportValue,
-                                'grand_total'       => $item->getData('grand_total'),
-                                'order_count'       => $item->getData('order_count')];
+                                'grand_total' => $item->getData('grand_total'),
+                                'order_count' => $item->getData('order_count')];
                             $xGroup['value'][] = $xItem;
                         }
                     } else {
@@ -328,9 +358,9 @@ class SalesManagement extends ServiceAbstract
                                     array_push(
                                         $xGroup['value'][$key]['payments'],
                                         [
-                                            'payment_id'          => $item->getData('payment_id'),
-                                            'payment_title'       => $item->getData('payment_title'),
-                                            'payment_type'        => $item->getData('payment_type'),
+                                            'payment_id' => $item->getData('payment_id'),
+                                            'payment_title' => $item->getData('payment_title'),
+                                            'payment_type' => $item->getData('payment_type'),
                                             'payment_base_amount' => $item->getData('payment_base_amount'),
                                         ]
                                     );
@@ -340,9 +370,9 @@ class SalesManagement extends ServiceAbstract
                                         array_push(
                                             $payments,
                                             [
-                                                'payment_id'          => $item->getData('payment_id'),
-                                                'payment_title'       => $item->getData('payment_title'),
-                                                'payment_type'        => $item->getData('payment_type'),
+                                                'payment_id' => $item->getData('payment_id'),
+                                                'payment_title' => $item->getData('payment_title'),
+                                                'payment_type' => $item->getData('payment_type'),
                                                 'payment_base_amount' => $item->getData('payment_base_amount'),
                                             ]
                                         );
@@ -500,9 +530,9 @@ class SalesManagement extends ServiceAbstract
                                 array_push(
                                     $xGroup['value'][$key]['payments'],
                                     [
-                                        'payment_id'          => $item->getData('payment_id'),
-                                        'payment_title'       => $item->getData('payment_title'),
-                                        'payment_type'        => $item->getData('payment_type'),
+                                        'payment_id' => $item->getData('payment_id'),
+                                        'payment_title' => $item->getData('payment_title'),
+                                        'payment_type' => $item->getData('payment_type'),
                                         'payment_base_amount' => $item->getData('base_row_payment_amount'),
                                     ]
                                 );
@@ -512,9 +542,9 @@ class SalesManagement extends ServiceAbstract
                                     array_push(
                                         $payments,
                                         [
-                                            'payment_id'          => $item->getData('payment_id'),
-                                            'payment_title'       => $item->getData('payment_title'),
-                                            'payment_type'        => $item->getData('payment_type'),
+                                            'payment_id' => $item->getData('payment_id'),
+                                            'payment_title' => $item->getData('payment_title'),
+                                            'payment_type' => $item->getData('payment_type'),
                                             'payment_base_amount' => $item->getData('base_row_payment_amount'),
                                         ]
                                     );
@@ -678,14 +708,14 @@ class SalesManagement extends ServiceAbstract
                 continue;
             }
 
-            $additionalInformation = json_decode($d['additional_information'], true);
+            $additionalInformation = json_decode((string)$d['additional_information'], true);
             $baseTotalInvoiced = floatval($d['base_total_invoiced']);
             $baseTotalRefunded = floatval($d['base_total_refunded']);
 
             if ($method !== 'retailmultiple') {
                 if (!isset($results[$method])) {
                     $results[$method] = [
-                        'name'   => !empty($additionalInformation['method_title']) ? $additionalInformation['method_title'] : ucfirst($method),
+                        'name' => !empty($additionalInformation['method_title']) ? $additionalInformation['method_title'] : ucfirst($method),
                         'amount' => 0,
                     ];
                 }
@@ -695,7 +725,7 @@ class SalesManagement extends ServiceAbstract
                 if (!isset($additionalInformation['split_data'])) {
                     continue;
                 }
-                $splitData = json_decode($additionalInformation['split_data'], true);
+                $splitData = json_decode((string)$additionalInformation['split_data'], true);
                 $notAllowedTypes = [
                     RetailPayment::GIFT_CARD_PAYMENT_TYPE,
                     RetailPayment::REWARD_POINT_PAYMENT_TYPE,
@@ -718,7 +748,7 @@ class SalesManagement extends ServiceAbstract
 
                     if (!isset($results[$method])) {
                         $results[$method] = [
-                            'name'   => $p['title'],
+                            'name' => $p['title'],
                             'amount' => 0,
                         ];
                     }
@@ -803,7 +833,7 @@ class SalesManagement extends ServiceAbstract
             case "reference_number":
                 $data = $item->getData('reference_number');
                 $data_value = [
-                    'name'   => $item->getData('reference_number'),
+                    'name' => $item->getData('reference_number'),
                     'outlet' => $item->getData('name'),
                 ];
                 break;
@@ -841,10 +871,10 @@ class SalesManagement extends ServiceAbstract
                     $customer = $this->customerRepositoryInterface->getById($item->getData('customer_id'));
                     if ($customer) {
                         $data_value = [
-                            "email"                 => $customer->getEmail(),
-                            "name"                  => $customer->getFirstname() . " " . $customer->getLastName(),
-                            'phone'                 => $item->getData('customer_telephone'),
-                            'customer_group_code'   => $item->getData('customer_group_code'),
+                            "email" => $customer->getEmail(),
+                            "name" => $customer->getFirstname() . " " . $customer->getLastName(),
+                            'phone' => $item->getData('customer_telephone'),
+                            'customer_group_code' => $item->getData('customer_group_code'),
                             'total_shipping_amount' => $item->getData('total_shipping_amount'),
                         ];
                     } else {
@@ -866,7 +896,19 @@ class SalesManagement extends ServiceAbstract
                 break;
             case "payment_method":
                 if ($dataFilter['item_filter']) {
-                    $paymentMethod = $this->retailPaymentRepository->getById($item->getData('payment_id'));
+                    try {
+                        $paymentMethod = $this->retailPaymentRepository->getById($item->getData('payment_id'));
+                    } catch (\Exception $e) {
+                        $defaultPaymentMethod = $this->paymentDataHelper->getPaymentDataArray(0);
+                        $paymentMethod = $this->retailPayment->create();
+                        $paymentData = $defaultPaymentMethod[$item->getData('payment_id')] ?? [
+                            'type' => 'other',
+                            'title' => 'Other',
+                            'is_active' => 1,
+                            'is_dummy' => 1,
+                        ];
+                        $paymentMethod->addData($paymentData);
+                    }
                     $data = $item->getData('payment_id');
                     $data_value = $paymentMethod->getData('title');
                 } else {
@@ -947,14 +989,14 @@ class SalesManagement extends ServiceAbstract
                 if ($productModel) {
                     $product_name = $productModel->getData('name');
                 } else {
-                    $arrayName = explode(",", $item->getData('all_product_name'));
+                    $arrayName = explode(",", (string)$item->getData('all_product_name'));
                     if (is_array($arrayName) && end($arrayName)) {
                         $product_name = end($arrayName);
                     }
                 }
                 $data_value = [
-                    'name'         => $product_name,
-                    'sku'          => $item->getData('sku'),
+                    'name' => $product_name,
+                    'sku' => $item->getData('sku'),
                     'product_type' => $item->getData('product_type'),
                     'manufacturer' => $item->getData('manufacturer_value'),
                 ];
